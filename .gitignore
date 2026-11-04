@@ -1,0 +1,5 @@
+node_modules/
+**/node_modules/
+Sistema-PawSys-backend/.env
+**/dist/
+*.log

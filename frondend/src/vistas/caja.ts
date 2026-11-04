@@ -1,0 +1,5 @@
+import { renderizarEncabezado, renderizarIndicadores } from '../componentes/panel.js';
+
+export function renderizarCaja(): string {
+  return `${renderizarEncabezado('Caja', 'Resumen de movimientos y estado de caja.')}<div class="notice">Los movimientos de caja se muestran como resumen de demostración. El backend requiere una caja abierta para registrar ingresos y egresos.</div>${renderizarIndicadores([['Estado', 'Abierta', 'Caja principal', '$'], ['Ingresos del día', '$ 248.000', 'Datos de muestra', '↗'], ['Egresos del día', '$ 36.500', 'Datos de muestra', '↘'], ['Saldo actual', '$ 211.500', 'Datos de muestra', '=']])}<section class="section-block"><div class="section-heading"><div><h2>Actividad reciente</h2><p>Movimientos de la caja principal</p></div><span class="demo-label">Resumen de muestra</span></div><div class="table-wrap"><table><thead><tr><th>Concepto</th><th>Responsable</th><th>Fecha</th><th>Monto</th></tr></thead><tbody><tr><td>Consulta general</td><td>Valentina Cruz</td><td>Hoy, 09:20</td><td>$ 28.000</td></tr><tr><td>Vacunación</td><td>Mateo Silva</td><td>Hoy, 10:45</td><td>$ 18.000</td></tr></tbody></table></div></section>`;
+}

@@ -1,0 +1,13 @@
+{
+  "name": "pawsys-frond",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -w -p tsconfig.json",
+    "start": "npm run build && python -m http.server 5500"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

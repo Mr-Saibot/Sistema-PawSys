@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  CLIENTE
+  VETERINARIO
+  ADMINISTRADOR
+}
+
+model Usuario {
+  id            Int       @id @default(autoincrement())
+  correo        String    @unique
+  passwordHash  String
+  rol           Rol
+  estado        Boolean   @default(true)
+  fechaCreacion DateTime  @default(now())
+  ultimoAcceso  DateTime?
+
+  cliente       Cliente?
+  veterinario   Veterinario?
+  administrador Administrador?
+}
+
+model Cliente {
+  id               Int       @id @default(autoincrement())
+  cedulaIdentidad  String    @unique
+  nombre           String
+  apellido         String
+  telefono         String?
+  correo           String    @unique
+  direccion        String?
+  usuarioId        Int       @unique
+  usuario          Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  mascotas         Mascota[]
+  createdAt        DateTime  @default(now())
+}
+
+model Veterinario {
+  id             Int         @id @default(autoincrement())
+  especialidad   String
+  nroMatricula   String      @unique
+  nombre         String
+  apellido       String
+  telefono       String?
+  correo         String      @unique
+  direccion      String?
+  usuarioId      Int         @unique
+  usuario        Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  turnos         Turno[]
+  consultas      Consulta[]
+  vacunaciones   Vacunacion[]
+  createdAt      DateTime    @default(now())
+}
+
+model Administrador {
+  id         Int      @id @default(autoincrement())
+  nombre     String
+  apellido   String
+  telefono   String?
+  correo     String   @unique
+  direccion  String?
+  usuarioId  Int      @unique
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  cajas      Caja[]
+  createdAt  DateTime @default(now())
+}
+
+model Mascota {
+  id              Int              @id @default(autoincrement())
+  nombre          String
+  especie         String
+  raza            String?
+  peso            Float?
+  fechaNacimiento DateTime?
+  observaciones   String?
+  estado          Boolean          @default(true)
+  clienteId       Int
+  cliente         Cliente          @relation(fields: [clienteId], references: [id])
+  historial       HistorialClinico?
+  turnos          Turno[]
+  createdAt       DateTime         @default(now())
+  @@index([clienteId], map: "Mascota_clienteId_fkey")
+}
+
+model Agenda {
+  id       Int      @id @default(autoincrement())
+  fecha    DateTime
+  horario  String
+  turnos   Turno[]
+}
+
+model Turno {
+  id            Int         @id @default(autoincrement())
+  fecha         DateTime
+  hora          String
+  estado        String      @default("PENDIENTE")
+  motivo        String?
+  mascotaId     Int
+  mascota       Mascota     @relation(fields: [mascotaId], references: [id])
+  veterinarioId Int
+  veterinario   Veterinario @relation(fields: [veterinarioId], references: [id])
+  agendaId      Int?
+  agenda        Agenda?     @relation(fields: [agendaId], references: [id])
+  createdAt     DateTime    @default(now())
+  @@index([agendaId], map: "Turno_agendaId_fkey")
+  @@index([mascotaId], map: "Turno_mascotaId_fkey")
+  @@index([veterinarioId], map: "Turno_veterinarioId_fkey")
+}
+
+model HistorialClinico {
+  id             Int          @id @default(autoincrement())
+  fechaCreacion  DateTime     @default(now())
+  observaciones  String?
+  mascotaId      Int          @unique
+  mascota        Mascota      @relation(fields: [mascotaId], references: [id])
+  consultas      Consulta[]
+  vacunaciones   Vacunacion[]
+}
+
+model Consulta {
+  id                  Int              @id @default(autoincrement())
+  fecha               DateTime         @default(now())
+  motivo              String
+  diagnostico         String?
+  tratamiento         String?
+  costo               Decimal          @db.Decimal(10, 2)
+  historialId         Int
+  historial           HistorialClinico @relation(fields: [historialId], references: [id])
+  veterinarioId       Int
+  veterinario         Veterinario      @relation(fields: [veterinarioId], references: [id])
+  ingreso             Ingreso?
+  @@index([historialId], map: "Consulta_historialId_fkey")
+  @@index([veterinarioId], map: "Consulta_veterinarioId_fkey")
+}
+
+model Vacunacion {
+  id             Int              @id @default(autoincrement())
+  vacuna         String
+  fecha          DateTime         @default(now())
+  proximaDosis   DateTime?
+  costo          Decimal          @db.Decimal(10, 2)
+  historialId    Int
+  historial      HistorialClinico @relation(fields: [historialId], references: [id])
+  veterinarioId  Int
+  veterinario    Veterinario      @relation(fields: [veterinarioId], references: [id])
+  ingreso        Ingreso?
+  @@index([historialId], map: "Vacunacion_historialId_fkey")
+  @@index([veterinarioId], map: "Vacunacion_veterinarioId_fkey")
+}
+
+model Caja {
+  id             Int              @id @default(autoincrement())
+  fechaApertura  DateTime         @default(now())
+  fechaCierre    DateTime?
+  saldoInicial   Decimal          @db.Decimal(10, 2)
+  saldoActual    Decimal          @db.Decimal(10, 2)
+  estado         String           @default("ABIERTA")
+  administradorId Int
+  administrador  Administrador    @relation(fields: [administradorId], references: [id])
+  ingresos       Ingreso[]
+  egresos        Egreso[]
+
+  @@index([administradorId], map: "Caja_administradorId_fkey")
+}
+
+model Ingreso {
+  id           Int        @id @default(autoincrement())
+  fecha        DateTime   @default(now())
+  monto        Decimal    @db.Decimal(10, 2)
+  descripcion  String?
+  responsable  String
+  concepto     String
+  formaPago    String
+  origen       String
+  cajaId       Int
+  caja         Caja       @relation(fields: [cajaId], references: [id])
+  consultaId   Int?       @unique
+  consulta     Consulta?  @relation(fields: [consultaId], references: [id])
+  vacunacionId Int?       @unique
+  vacunacion   Vacunacion? @relation(fields: [vacunacionId], references: [id])
+  @@index([cajaId], map: "Ingreso_cajaId_fkey")
+}
+
+model Egreso {
+  id           Int      @id @default(autoincrement())
+  fecha        DateTime @default(now())
+  monto        Decimal  @db.Decimal(10, 2)
+  descripcion  String?
+  responsable  String
+  concepto     String
+  categoria    String
+  proveedor    String?
+  cajaId       Int
+  caja         Caja     @relation(fields: [cajaId], references: [id])
+  @@index([cajaId], map: "Egreso_cajaId_fkey")
+}

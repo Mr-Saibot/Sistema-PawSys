@@ -1,0 +1,11 @@
+{
+  "name": "pawsys-entorno-local",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "instalar": "npm --prefix Sistema-PawSys-backend install && npm --prefix frond install",
+    "preparar:base": "npm --prefix Sistema-PawSys-backend run preparar:base",
+    "sincronizar:base": "npm --prefix Sistema-PawSys-backend run sincronizar:base",
+    "iniciar": "node herramientas/iniciar-desarrollo.mjs"
+  }
+}
