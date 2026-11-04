@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Rol } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVeterinarioDto } from './dto/create-veterinario.dto';
 import { UpdateVeterinarioDto } from './dto/update-veterinario.dto';
@@ -8,6 +9,11 @@ export class VeterinariosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createVeterinarioDto: CreateVeterinarioDto) {
+    const usuario = await this.prisma.usuario.findUnique({ where: { id: createVeterinarioDto.usuarioId } });
+    if (!usuario) throw new NotFoundException(`Usuario ${createVeterinarioDto.usuarioId} no encontrado`);
+    if (usuario.rol !== Rol.VETERINARIO || usuario.correo !== createVeterinarioDto.correo.trim().toLowerCase()) {
+      throw new BadRequestException('El usuario debe tener rol VETERINARIO y coincidir con el correo del perfil');
+    }
     const matriculaExiste = await this.prisma.veterinario.findUnique({
       where: { nroMatricula: createVeterinarioDto.nroMatricula },
     });
@@ -25,7 +31,7 @@ export class VeterinariosService {
     }
 
     return this.prisma.veterinario.create({
-      data: createVeterinarioDto,
+      data: { ...createVeterinarioDto, correo: createVeterinarioDto.correo.trim().toLowerCase() },
       include: {
         usuario: {
           select: { id: true, correo: true, rol: true, estado: true },
@@ -36,12 +42,21 @@ export class VeterinariosService {
 
   async findAll() {
     return this.prisma.veterinario.findMany({
+      where: { usuario: { is: { estado: true } } },
       include: {
         usuario: {
           select: { id: true, correo: true, rol: true, estado: true },
         },
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  findDisponibles() {
+    return this.prisma.veterinario.findMany({
+      where: { usuario: { is: { estado: true } } },
+      select: { id: true, nombre: true, apellido: true, especialidad: true },
+      orderBy: [{ apellido: 'asc' }, { nombre: 'asc' }],
     });
   }
 
@@ -74,10 +89,11 @@ export class VeterinariosService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
-
-    return this.prisma.veterinario.delete({
-      where: { id },
+    const veterinario = await this.findOne(id);
+    return this.prisma.usuario.update({
+      where: { id: veterinario.usuarioId },
+      data: { estado: false },
+      select: { id: true, estado: true },
     });
   }
 }

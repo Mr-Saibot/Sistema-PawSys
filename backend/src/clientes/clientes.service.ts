@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Rol } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
@@ -8,6 +9,11 @@ export class ClientesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createClienteDto: CreateClienteDto) {
+    const usuario = await this.prisma.usuario.findUnique({ where: { id: createClienteDto.usuarioId } });
+    if (!usuario) throw new NotFoundException(`Usuario ${createClienteDto.usuarioId} no encontrado`);
+    if (usuario.rol !== Rol.CLIENTE || usuario.correo !== createClienteDto.correo.trim().toLowerCase()) {
+      throw new BadRequestException('El usuario debe tener rol CLIENTE y coincidir con el correo del perfil');
+    }
     const cedulaExiste = await this.prisma.cliente.findUnique({
       where: { cedulaIdentidad: createClienteDto.cedulaIdentidad },
     });
@@ -25,7 +31,7 @@ export class ClientesService {
     }
 
     return this.prisma.cliente.create({
-      data: createClienteDto,
+      data: { ...createClienteDto, correo: createClienteDto.correo.trim().toLowerCase() },
       include: {
         mascotas: true,
         usuario: {
@@ -37,8 +43,10 @@ export class ClientesService {
 
   async findAll() {
     return this.prisma.cliente.findMany({
+      where: { usuario: { is: { estado: true } } },
       include: {
         mascotas: true,
+        usuario: { select: { estado: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -86,10 +94,11 @@ export class ClientesService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
-
-    return this.prisma.cliente.delete({
-      where: { id },
+    const cliente = await this.findOne(id);
+    return this.prisma.usuario.update({
+      where: { id: cliente.usuarioId },
+      data: { estado: false },
+      select: { id: true, estado: true },
     });
   }
 }

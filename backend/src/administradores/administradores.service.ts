@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Rol } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAdministradorDto } from './dto/create-administradore.dto';
 import { UpdateAdministradorDto } from './dto/update-administradore.dto';
@@ -8,6 +9,11 @@ export class AdministradoresService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createAdministradorDto: CreateAdministradorDto) {
+    const usuario = await this.prisma.usuario.findUnique({ where: { id: createAdministradorDto.usuarioId } });
+    if (!usuario) throw new NotFoundException(`Usuario ${createAdministradorDto.usuarioId} no encontrado`);
+    if (usuario.rol !== Rol.ADMINISTRADOR || usuario.correo !== createAdministradorDto.correo.trim().toLowerCase()) {
+      throw new BadRequestException('El usuario debe tener rol ADMINISTRADOR y coincidir con el correo del perfil');
+    }
     const correoExiste = await this.prisma.administrador.findUnique({
       where: { correo: createAdministradorDto.correo },
     });
@@ -17,7 +23,7 @@ export class AdministradoresService {
     }
 
     return this.prisma.administrador.create({
-      data: createAdministradorDto,
+      data: { ...createAdministradorDto, correo: createAdministradorDto.correo.trim().toLowerCase() },
       include: {
         usuario: {
           select: { id: true, correo: true, rol: true, estado: true },
@@ -28,6 +34,7 @@ export class AdministradoresService {
 
   async findAll() {
     return this.prisma.administrador.findMany({
+      where: { usuario: { is: { estado: true } } },
       include: {
         usuario: {
           select: { id: true, correo: true, rol: true, estado: true },
@@ -64,10 +71,11 @@ export class AdministradoresService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
-
-    return this.prisma.administrador.delete({
-      where: { id },
+    const administrador = await this.findOne(id);
+    return this.prisma.usuario.update({
+      where: { id: administrador.usuarioId },
+      data: { estado: false },
+      select: { id: true, estado: true },
     });
   }
 }

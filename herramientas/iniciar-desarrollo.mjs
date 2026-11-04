@@ -7,11 +7,11 @@ const opcionesProceso = { stdio: 'inherit', shell: process.platform === 'win32' 
 const procesos = [
   spawn('npm', ['run', 'start:dev'], {
     ...opcionesProceso,
-    cwd: resolve(raiz, 'Sistema-PawSys-backend'),
+    cwd: resolve(raiz, 'backend'),
   }),
   spawn('npm', ['start'], {
     ...opcionesProceso,
-    cwd: resolve(raiz, 'frond'),
+    cwd: resolve(raiz, 'frondend'),
   }),
 ];
 

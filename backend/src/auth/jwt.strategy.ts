@@ -3,13 +3,21 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../prisma/prisma.service';
 
+function jwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret === 'CAMBIA_ESTA_CLAVE_POR_UNA_LARGA_Y_ALEATORIA') {
+    throw new Error('Configura JWT_SECRET con un valor aleatorio y seguro antes de iniciar el backend.');
+  }
+  return secret;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly prisma: PrismaService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'ClaveSecretaPawSys2026Tesis',
+      secretOrKey: jwtSecret(),
     });
   }
 
@@ -22,7 +30,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Usuario inactivo o no encontrado');
     }
 
-    const { passwordHash, ...userWithoutPassword } = usuario;
+    const { passwordHash: _passwordHash, ...userWithoutPassword } = usuario;
     return userWithoutPassword;
   }
 }

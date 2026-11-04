@@ -1,7 +1,7 @@
 import { fotos } from '../constantes.js';
 import { mascotasDemo } from '../datos/datos-demostracion.js';
 import { escaparHtml } from '../utilidades/formato-html.js';
-import type { Mascota } from '../tipos.js';
+import type { Mascota, Persona } from '../tipos.js';
 
 function fotoMascota(mascota: Mascota): string {
   return mascota.foto || fotos[mascota.especie.toLowerCase() as keyof typeof fotos] || fotos.perro;
@@ -13,13 +13,21 @@ function nombreResponsable(mascota: Mascota): string {
   return mascota.clienteNombre || '—';
 }
 
-export function renderizarFilasMascotas(mascotas: Mascota[]): string {
+export function renderizarFilasMascotas(
+  mascotas: Mascota[],
+  puedeGestionar = false,
+  clientes: Persona[] = [],
+  puedeEditar = false,
+): string {
   if (!mascotas.length) return '<tr><td colspan="5"><div class="empty-state">Aún no hay pacientes registrados.</div></td></tr>';
   return mascotas.map((mascota) => {
     const responsable = nombreResponsable(mascota);
     const busqueda = `${mascota.nombre} ${mascota.especie} ${mascota.raza || ''} ${responsable}`.toLocaleLowerCase('es');
     const peso = mascota.peso ? `${mascota.peso} kg` : '—';
-    return `<tr data-busqueda="${escaparHtml(busqueda)}"><td><div class="person-cell"><img class="pet-thumb" src="${escaparHtml(fotoMascota(mascota))}" alt="" onerror="this.style.visibility='hidden'" /><div><div class="cell-primary">${escaparHtml(mascota.nombre)}</div><div class="cell-secondary">${escaparHtml(mascota.raza || mascota.especie)}</div></div></div></td><td>${escaparHtml(mascota.especie)}</td><td>${escaparHtml(peso)}</td><td>${escaparHtml(responsable)}</td><td><span class="tag">${mascota.estado === false ? 'Inactivo' : 'Activo'}</span></td></tr>`;
+    const edicion = puedeEditar ? `<details class="record-editor"><summary class="text-button">Editar</summary><form class="form-grid compact-form" data-api-form data-endpoint="/mascotas/${mascota.id}" data-method="PATCH">${puedeGestionar ? `<label class="field">Responsable<select name="clienteId" required>${clientes.map((cliente) => `<option value="${cliente.id}" ${cliente.id === mascota.clienteId ? 'selected' : ''}>${escaparHtml(cliente.nombre)} ${escaparHtml(cliente.apellido)}</option>`).join('')}</select></label>` : ''}<label class="field">Nombre<input name="nombre" value="${escaparHtml(mascota.nombre)}" required /></label><label class="field">Especie<input name="especie" value="${escaparHtml(mascota.especie)}" required /></label><label class="field">Raza<input name="raza" data-nullable value="${escaparHtml(mascota.raza || '')}" /></label><label class="field">Peso (kg)<input name="peso" data-nullable type="number" min="0" step="0.1" value="${mascota.peso ?? ''}" /></label><label class="field">Fecha de nacimiento<input name="fechaNacimiento" type="date" value="${escaparHtml(mascota.fechaNacimiento?.slice(0, 10) || '')}" /></label><label class="field">Observaciones<input name="observaciones" data-nullable value="${escaparHtml(mascota.observaciones || '')}" /></label><button class="primary-button" type="submit">Guardar cambios</button><div class="login-error" role="alert"></div></form></details>` : '';
+    const baja = puedeGestionar ? `<button class="text-button danger-button" type="button" data-eliminar-mascota="${mascota.id}">Dar de baja</button>` : '';
+    const acciones = edicion || baja ? `<td>${edicion}${baja}</td>` : '';
+    return `<tr data-busqueda="${escaparHtml(busqueda)}"><td><div class="person-cell"><img class="pet-thumb" src="${escaparHtml(fotoMascota(mascota))}" alt="" onerror="this.style.visibility='hidden'" /><div><div class="cell-primary">${escaparHtml(mascota.nombre)}</div><div class="cell-secondary">${escaparHtml(mascota.raza || mascota.especie)}</div></div></div></td><td>${escaparHtml(mascota.especie)}</td><td>${escaparHtml(peso)}</td><td>${escaparHtml(responsable)}</td><td><span class="tag">${mascota.estado === false ? 'Inactivo' : 'Activo'}</span></td>${acciones}</tr>`;
   }).join('');
 }
 

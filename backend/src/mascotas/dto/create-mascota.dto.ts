@@ -29,7 +29,7 @@ export class CreateMascotaDto {
   @IsBoolean()
   estado?: boolean;
 
-  @IsNotEmpty({ message: 'El ID del cliente dueño es obligatorio' })
+  @IsOptional()
   @IsInt()
-  clienteId: number;
+  clienteId?: number;
 }

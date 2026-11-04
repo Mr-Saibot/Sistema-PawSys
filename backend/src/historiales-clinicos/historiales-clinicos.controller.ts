@@ -3,8 +3,12 @@ import { HistorialesClinicosService } from './historiales-clinicos.service';
 import { CreateHistorialClinicoDto } from './dto/create-historiales-clinico.dto';
 import { UpdateHistorialClinicoDto } from './dto/update-historiales-clinico.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Rol } from '@prisma/client';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Rol.VETERINARIO, Rol.ADMINISTRADOR)
 @Controller('historiales-clinicos')
 export class HistorialesClinicosController {
   constructor(private readonly historialesClinicosService: HistorialesClinicosService) {}
@@ -38,6 +42,7 @@ export class HistorialesClinicosController {
   }
 
   @Delete(':id')
+  @Roles(Rol.ADMINISTRADOR)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.historialesClinicosService.remove(id);
   }

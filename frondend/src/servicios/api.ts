@@ -1,6 +1,6 @@
 import { API_PREDETERMINADA, CLAVE_API } from '../constantes.js';
 import { crearDatosVacios } from '../datos/datos-demostracion.js';
-import type { DatosPanel, DatosRegistroCliente, Rol, Sesion, Usuario } from '../tipos.js';
+import type { ConfiguracionPagos, DatosPanel, DatosRegistroCliente, Rol, Sesion, Usuario } from '../tipos.js';
 
 interface RespuestaInicioSesion {
   user: Usuario;
@@ -21,6 +21,15 @@ export function guardarUrlApi(valor: string): void {
   localStorage.setItem(CLAVE_API, normalizado);
 }
 
+async function leerRespuesta<T>(respuesta: Response, mensajePredeterminado: string): Promise<T> {
+  const resultado = await respuesta.json().catch(() => ({})) as { message?: string | string[] };
+  if (!respuesta.ok) {
+    const mensaje = Array.isArray(resultado.message) ? resultado.message.join(', ') : resultado.message;
+    throw new Error(mensaje || `${mensajePredeterminado} (${respuesta.status})`);
+  }
+  return resultado as T;
+}
+
 export async function registrarCliente(datos: DatosRegistroCliente): Promise<void> {
   const respuesta = await fetch(`${urlBaseApi()}/auth/register`, {
     method: 'POST',
@@ -35,11 +44,7 @@ export async function registrarCliente(datos: DatosRegistroCliente): Promise<voi
       direccion: datos.direccion,
     }),
   });
-  const resultado = await respuesta.json().catch(() => ({})) as { message?: string | string[] };
-  if (!respuesta.ok) {
-    const mensaje = Array.isArray(resultado.message) ? resultado.message.join(', ') : resultado.message;
-    throw new Error(mensaje || 'No se pudo crear la cuenta. Revisa los datos e inténtalo de nuevo.');
-  }
+  await leerRespuesta<unknown>(respuesta, 'No se pudo crear la cuenta. Revisa los datos e inténtalo de nuevo.');
 }
 
 export async function iniciarSesion(correo: string, clave: string): Promise<Sesion> {
@@ -48,21 +53,35 @@ export async function iniciarSesion(correo: string, clave: string): Promise<Sesi
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ correo, password: clave }),
   });
-  const resultado = await respuesta.json().catch(() => ({})) as Partial<RespuestaInicioSesion> & { message?: string | string[] };
-  if (!respuesta.ok) {
-    const mensaje = Array.isArray(resultado.message) ? resultado.message.join(', ') : resultado.message;
-    throw new Error(mensaje || 'No se pudo iniciar sesión. Revisa tus datos.');
-  }
+  const resultado = await leerRespuesta<Partial<RespuestaInicioSesion>>(respuesta, 'No se pudo iniciar sesión. Revisa tus datos.');
   if (!resultado.access_token || !resultado.user?.rol) throw new Error('La respuesta del backend no contiene usuario y token.');
   return { usuario: resultado.user, token: resultado.access_token, demostracion: false };
 }
 
-async function obtenerRecurso<T>(ruta: string, token: string): Promise<T> {
+export async function enviarApi<T>(ruta: string, token: string, metodo = 'GET', datos?: unknown): Promise<T> {
   const respuesta = await fetch(`${urlBaseApi()}${ruta}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    method: metodo,
+    headers: {
+      Authorization: ['Bearer', token].join(' '),
+      ...(datos === undefined ? {} : { 'Content-Type': 'application/json' }),
+    },
+    ...(datos === undefined ? {} : { body: JSON.stringify(datos) }),
   });
-  if (!respuesta.ok) throw new Error(`${ruta}: ${respuesta.status}`);
-  return respuesta.json() as Promise<T>;
+  return leerRespuesta<T>(respuesta, `${metodo} ${ruta} falló`);
+}
+
+export async function obtenerConfiguracionPagos(): Promise<ConfiguracionPagos> {
+  const respuesta = await fetch(`${urlBaseApi()}/configuracion/pagos`);
+  const resultado = await leerRespuesta<Partial<ConfiguracionPagos>>(respuesta, 'No se pudo cargar la información de pagos');
+  return {
+    alias: resultado.alias || '',
+    titular: resultado.titular || '',
+    qrImageUrl: resultado.qrImageUrl || '',
+  };
+}
+
+async function obtenerRecurso<T>(ruta: string, token: string): Promise<T> {
+  return enviarApi<T>(ruta, token);
 }
 
 export async function cargarDatosPanel(sesion: Sesion): Promise<DatosPanel> {
@@ -70,41 +89,57 @@ export async function cargarDatosPanel(sesion: Sesion): Promise<DatosPanel> {
   const token = sesion.token;
   if (!token) return datos;
 
-  if (sesion.usuario.rol === 'CLIENTE') {
-    try {
-      datos.mascotas = await obtenerRecurso<DatosPanel['mascotas']>('/clientes/me/mascotas', token);
-      datos.conectado = true;
-    } catch {
-      datos.errorConexion = true;
-    }
-    return datos;
-  }
-
-  const recursos: { clave: 'mascotas' | 'turnos' | 'clientes' | 'veterinarios'; ruta: string }[] = [
+  const recursos: { clave: keyof DatosPanel; ruta: string }[] = [
     { clave: 'mascotas', ruta: '/mascotas' },
     { clave: 'turnos', ruta: '/turnos' },
+    { clave: 'veterinarios', ruta: sesion.usuario.rol === 'CLIENTE' ? '/veterinarios/disponibles' : '/veterinarios' },
   ];
+  if (sesion.usuario.rol !== 'CLIENTE') {
+    recursos.push(
+      { clave: 'clientes', ruta: '/clientes' },
+      ...(sesion.usuario.rol === 'ADMINISTRADOR' ? [{ clave: 'administradores' as const, ruta: '/administradores' }] : []),
+      { clave: 'historiales', ruta: '/historiales-clinicos' },
+      { clave: 'consultas', ruta: '/consultas' },
+      { clave: 'vacunaciones', ruta: '/vacunaciones' },
+      { clave: 'agendas', ruta: '/agendas' },
+    );
+  }
   if (sesion.usuario.rol === 'ADMINISTRADOR') {
-    recursos.push({ clave: 'clientes', ruta: '/clientes' }, { clave: 'veterinarios', ruta: '/veterinarios' });
+    recursos.push(
+      { clave: 'cajas', ruta: '/caja' },
+      { clave: 'ingresos', ruta: '/ingresos' },
+      { clave: 'egresos', ruta: '/egresos' },
+    );
   }
 
   const resultados = await Promise.allSettled(recursos.map(({ ruta }) => obtenerRecurso<unknown>(ruta, token)));
   resultados.forEach((resultado, indice) => {
-    if (resultado.status !== 'fulfilled' || !Array.isArray(resultado.value)) return;
-    const clave = recursos[indice].clave;
-    switch (clave) {
-      case 'mascotas': datos.mascotas = resultado.value;
-        break;
-      case 'turnos': datos.turnos = resultado.value;
-        break;
-      case 'clientes': datos.clientes = resultado.value;
-        break;
-      case 'veterinarios': datos.veterinarios = resultado.value;
-        break;
+    if (resultado.status !== 'fulfilled') {
+      datos.errorRecursos.push(`${recursos[indice].ruta}: ${resultado.reason instanceof Error ? resultado.reason.message : 'error desconocido'}`);
+      return;
+    }
+    if (!Array.isArray(resultado.value)) {
+      datos.errorRecursos.push(`${recursos[indice].ruta}: respuesta inesperada del backend`);
+      return;
+    }
+    switch (recursos[indice].clave) {
+      case 'mascotas': datos.mascotas = resultado.value; break;
+      case 'turnos': datos.turnos = resultado.value; break;
+      case 'clientes': datos.clientes = resultado.value; break;
+      case 'veterinarios': datos.veterinarios = resultado.value; break;
+      case 'administradores': datos.administradores = resultado.value; break;
+      case 'cajas': datos.cajas = resultado.value; break;
+      case 'ingresos': datos.ingresos = resultado.value; break;
+      case 'egresos': datos.egresos = resultado.value; break;
+      case 'historiales': datos.historiales = resultado.value; break;
+      case 'consultas': datos.consultas = resultado.value; break;
+      case 'vacunaciones': datos.vacunaciones = resultado.value; break;
+      case 'agendas': datos.agendas = resultado.value; break;
+      default: break;
     }
     datos.conectado = true;
   });
-
+  datos.errorConexion = datos.errorRecursos.length > 0;
   return datos;
 }
 

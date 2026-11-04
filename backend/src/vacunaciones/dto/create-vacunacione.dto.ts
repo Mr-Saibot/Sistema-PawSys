@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsInt, IsNumber, IsDateString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsInt, IsNumber, IsDateString, Min } from 'class-validator';
 
 export class CreateVacunacionDto {
   @IsNotEmpty({ message: 'El nombre de la vacuna es obligatorio' })
@@ -11,6 +11,7 @@ export class CreateVacunacionDto {
 
   @IsNotEmpty({ message: 'El costo de la vacunación es obligatorio' })
   @IsNumber()
+  @Min(0)
   costo: number;
 
   @IsNotEmpty({ message: 'El ID del historial clínico es obligatorio' })

@@ -3,8 +3,12 @@ import { AdministradoresService } from './administradores.service';
 import { CreateAdministradorDto } from './dto/create-administradore.dto';
 import { UpdateAdministradorDto } from './dto/update-administradore.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Rol } from '@prisma/client';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Rol.ADMINISTRADOR)
 @Controller('administradores')
 export class AdministradoresController {
   constructor(private readonly administradoresService: AdministradoresService) {}

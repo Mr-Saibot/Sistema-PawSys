@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsInt, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsInt, IsNumber, Min } from 'class-validator';
 
 export class CreateConsultaDto {
   @IsNotEmpty({ message: 'El motivo de la consulta es obligatorio' })
@@ -15,6 +15,7 @@ export class CreateConsultaDto {
 
   @IsNotEmpty({ message: 'El costo de la consulta es obligatorio' })
   @IsNumber()
+  @Min(0)
   costo: number;
 
   @IsNotEmpty({ message: 'El ID del historial clínico es obligatorio' })

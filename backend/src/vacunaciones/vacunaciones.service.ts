@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Rol } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVacunacionDto } from './dto/create-vacunacione.dto';
 import { UpdateVacunacionDto } from './dto/update-vacunacione.dto';
@@ -7,9 +8,14 @@ import { UpdateVacunacionDto } from './dto/update-vacunacione.dto';
 export class VacunacionesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createVacunacionDto: CreateVacunacionDto) {
+  async create(createVacunacionDto: CreateVacunacionDto, usuario: { id: number; rol: Rol }) {
     const historialId = Number(createVacunacionDto.historialId);
-    const veterinarioId = Number(createVacunacionDto.veterinarioId);
+    let veterinarioId = Number(createVacunacionDto.veterinarioId);
+    if (usuario.rol === Rol.VETERINARIO) {
+      const perfil = await this.prisma.veterinario.findUnique({ where: { usuarioId: usuario.id } });
+      if (!perfil) throw new NotFoundException('No existe un perfil veterinario para este usuario');
+      veterinarioId = perfil.id;
+    }
 
     const historialExiste = await this.prisma.historialClinico.findUnique({
       where: { id: historialId },

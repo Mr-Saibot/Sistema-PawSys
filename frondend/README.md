@@ -1,20 +1,10 @@
-# Interfaz PawSys
+# Frontend PawSys
 
-Interfaz independiente para la API PawSys (NestJS). Usa HTML, CSS y TypeScript, sin dependencias de ejecución.
+Interfaz web responsive hecha con HTML, CSS y TypeScript, sin dependencias de ejecución.
 
-## Estructura
+## Desarrollo
 
-- `src/principal.ts`: punto de entrada.
-- `src/controladores/`: eventos y navegación entre pantallas.
-- `src/servicios/`: autenticación, llamadas a la API y persistencia de sesión.
-- `src/componentes/`: navegación, tablas, agenda y piezas compartidas.
-- `src/vistas/`: acceso y pantallas de cliente, veterinario y administración.
-- `src/datos/` y `src/utilidades/`: datos de demostración y funciones auxiliares.
-- `dist/`: JavaScript generado por TypeScript; no editar a mano.
-
-## Ejecutar
-
-Desde la raíz del workspace, la forma recomendada es:
+Desde la raíz del proyecto:
 
 ```powershell
 npm run instalar
@@ -22,43 +12,23 @@ npm run preparar:base
 npm run iniciar
 ```
 
-Abre `http://localhost:5500`. `npm run iniciar` compila y sirve el frontend y ejecuta el backend en otra tarea. Revisa el README de la raíz para configurar `.env` una sola vez.
+La aplicación se sirve en `http://localhost:5500` y consume la API en `http://localhost:3000`. Las carpetas del workspace son `backend` y `frondend`.
 
-El backend usa `http://localhost:3000` por defecto. Si usa otra dirección, cambia **Configuración de conexión** en el inicio de sesión. Las credenciales reales se validan con `POST /auth/login`; las tres vistas de demostración permiten revisar el diseño sin una base de datos configurada.
+Para acceder desde un celular, configura en `backend/.env` el origen LAN en `FRONTEND_URL` y guarda en el inicio de sesión la dirección de API que use la IP local de la computadora. Consulta el [README principal](../README.md) para los pasos y el firewall.
 
-## Pantallas incluidas
+## Pantallas conectadas
 
-- Inicio de sesión y vista de demostración para cliente, veterinario y administrador.
-- Registro real de clientes, que crea su perfil ligado a la cuenta.
-- Panel de cliente con sus mascotas, próxima cita y resumen de vacunas.
-- Panel veterinario con pacientes, agenda e indicadores clínicos.
-- Panel de administración con directorios de pacientes, clientes, equipo y un resumen de caja.
-- Listado de pacientes con búsqueda y navegación adaptable a móvil.
+- Inicio de sesión, registro de clientes y vistas de demostración.
+- Cliente: alta y edición de sus mascotas, solicitudes, cancelación/reprogramación de turnos e instrucciones de pago por QR o efectivo.
+- Veterinario: pacientes, agenda, edición de turnos e historias clínicas, consultas y vacunaciones.
+- Administración: altas y edición de pacientes, clientes, equipo y administradores; agendas, turnos, historias clínicas, consultas, vacunaciones y caja.
 
-## Integración y límites actuales
+Las bajas de cuentas de personas desactivan el acceso y conservan sus datos clínicos/financieros. La eliminación de registros clínicos está limitada a administración; el backend puede rechazar una baja si hay movimientos relacionados. Ingresos y egresos admiten registro y consulta porque la API no ofrece rutas para editarlos o eliminarlos.
 
-- El login usa el formato existente `{ correo, password }` y espera `{ user, access_token }`.
-- Para veterinarios y administradores, el frontend consulta `/mascotas` y `/turnos`; administración también consulta `/clientes` y `/veterinarios`.
-- Para clientes, consulta `GET /clientes/me/mascotas`, que obtiene las mascotas del usuario autenticado y solo permite el rol `CLIENTE`.
-- El formulario público solo crea clientes. Las cuentas de veterinario y administrador deben ser creadas internamente.
-- El token se guarda en `sessionStorage` y se envía como `Authorization: Bearer ...`.
-- La agenda de citas propias todavía no tiene un endpoint autenticado; el panel de cliente informa que esos datos no están disponibles en vez de presentar citas de muestra como reales.
-- Las rutas existentes solo comprueban JWT en muchos recursos, no permisos por rol. La navegación del frontend no sustituye la autorización del servidor.
-- CORS queda configurado en el backend para `http://localhost:5500` por defecto. Para otro origen, establece `FRONTEND_URL` antes de iniciar la API.
-- Las fotografías y tipografías se cargan desde Google Fonts y Unsplash; requieren conexión a internet.
+Los formularios requieren una sesión real, salvo el registro público y el modo de demostración. Las operaciones y permisos se validan en el backend.
 
-## Cuentas de prueba locales
+## QR
 
-Con el backend configurado para una base de datos local, crea las cuentas de prueba desde `Sistema-PawSys-backend`:
+La interfaz muestra la imagen configurada en `PAYMENT_QR_IMAGE_URL`, junto con el alias/titular. La imagen QR real debe ser provista por la veterinaria; el sistema no inventa el código ni verifica pagos bancarios. Los ingresos por transferencia se registran manualmente luego de la comprobación en la cuenta.
 
-```powershell
-npm run crear:cuentas-prueba
-```
-
-Las tres cuentas usan la contraseña `PawSysDemo2026!`:
-
-- Cliente: `cliente.demo@pawsys.local`
-- Veterinario: `veterinario.demo@pawsys.local`
-- Administrador: `admin.demo@pawsys.local`
-
-El script agrega una mascota y un turno de ejemplo, no sobrescribe cuentas existentes y se bloquea cuando `NODE_ENV=production`. Úsalo solo con una base de datos de desarrollo.
+`dist/` es generado por TypeScript; no se edita manualmente.

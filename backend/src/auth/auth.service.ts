@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { CreateStaffDto } from './dto/create-staff.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -65,13 +66,14 @@ export class AuthService {
       return { usuario, cliente };
     });
 
-    const { passwordHash, ...usuarioSeguro } = registro.usuario;
+    const { passwordHash: _passwordHash, ...usuarioSeguro } = registro.usuario;
     return { user: usuarioSeguro, cliente: registro.cliente };
   }
 
   async login(dto: LoginDto) {
+    const correo = dto.correo.trim().toLowerCase();
     const usuario = await this.prisma.usuario.findUnique({
-      where: { correo: dto.correo },
+      where: { correo },
       include: {
         cliente: { select: { nombre: true, apellido: true } },
         veterinario: { select: { nombre: true, apellido: true } },
@@ -79,7 +81,7 @@ export class AuthService {
       },
     });
 
-    if (!usuario) {
+    if (!usuario || !usuario.estado) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
@@ -98,11 +100,67 @@ export class AuthService {
     const payload = { sub: usuario.id, correo: usuario.correo, rol: usuario.rol };
     const token = this.jwtService.sign(payload);
 
-    const { passwordHash, ...userWithoutPassword } = usuario;
+    const { passwordHash: _passwordHash, ...userWithoutPassword } = usuario;
 
     return {
       user: userWithoutPassword,
       access_token: token,
     };
+  }
+
+  async createStaff(dto: CreateStaffDto) {
+    const correo = dto.correo.trim().toLowerCase();
+    const nombre = dto.nombre.trim();
+    const apellido = dto.apellido.trim();
+    const especialidad = dto.especialidad?.trim();
+    const nroMatricula = dto.nroMatricula?.trim();
+    if (dto.rol === 'VETERINARIO' && (!especialidad || !nroMatricula)) {
+      throw new BadRequestException('La especialidad y matrícula son obligatorias para el veterinario');
+    }
+    if (await this.prisma.usuario.findUnique({ where: { correo } })) {
+      throw new BadRequestException('El correo ya está registrado');
+    }
+    if (dto.rol === 'VETERINARIO' && nroMatricula && await this.prisma.veterinario.findUnique({ where: { nroMatricula } })) {
+      throw new BadRequestException('La matrícula ya está registrada');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    return this.prisma.$transaction(async (transaction) => {
+      const usuario = await transaction.usuario.create({
+        data: { correo, passwordHash, rol: dto.rol },
+      });
+      if (dto.rol === 'VETERINARIO') {
+        await transaction.veterinario.create({
+          data: {
+            especialidad: especialidad || '',
+            nroMatricula: nroMatricula || '',
+            nombre,
+            apellido,
+            correo,
+            telefono: dto.telefono?.trim() || null,
+            direccion: dto.direccion?.trim() || null,
+            usuarioId: usuario.id,
+          },
+        });
+      } else {
+        await transaction.administrador.create({
+          data: {
+            nombre,
+            apellido,
+            telefono: dto.telefono?.trim() || null,
+            direccion: dto.direccion?.trim() || null,
+            correo,
+            usuarioId: usuario.id,
+          },
+        });
+      }
+      return {
+        id: usuario.id,
+        correo: usuario.correo,
+        rol: usuario.rol,
+        estado: usuario.estado,
+        fechaCreacion: usuario.fechaCreacion,
+      };
+    });
   }
 }

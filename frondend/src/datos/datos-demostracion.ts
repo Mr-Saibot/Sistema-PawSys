@@ -35,8 +35,17 @@ export function crearDatosDemo(): DatosPanel {
     turnos: turnosDemo,
     clientes: [],
     veterinarios: [],
+    administradores: [],
     conectado: false,
     errorConexion: false,
+    cajas: [],
+    ingresos: [],
+    egresos: [],
+    historiales: [],
+    consultas: [],
+    vacunaciones: [],
+    agendas: [],
+    errorRecursos: [],
   };
 }
 
@@ -46,7 +55,16 @@ export function crearDatosVacios(): DatosPanel {
     turnos: [],
     clientes: [],
     veterinarios: [],
+    administradores: [],
     conectado: false,
     errorConexion: false,
+    cajas: [],
+    ingresos: [],
+    egresos: [],
+    historiales: [],
+    consultas: [],
+    vacunaciones: [],
+    agendas: [],
+    errorRecursos: [],
   };
 }
