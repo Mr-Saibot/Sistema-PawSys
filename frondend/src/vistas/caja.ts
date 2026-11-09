@@ -1,6 +1,6 @@
 import { renderizarEncabezado, renderizarIndicadores } from '../componentes/panel.js';
 import { escaparHtml } from '../utilidades/formato-html.js';
-import type { ConfiguracionPagos, DatosPanel, ReporteCaja, Sesion } from '../tipos.js';
+import type { ConfiguracionPagos, DatosPanel, ReporteCaja } from '../tipos.js';
 
 function guaranies(valor: number | string): string {
   return new Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG', maximumFractionDigits: 0 }).format(Number(valor));
@@ -8,14 +8,10 @@ function guaranies(valor: number | string): string {
 
 export function renderizarCaja(
   datos: DatosPanel,
-  sesion: Sesion,
   configuracion: ConfiguracionPagos | null | undefined,
   errorPagos = '',
   reporte?: ReporteCaja | null,
 ): string {
-  if (sesion.demostracion) {
-    return `${renderizarEncabezado('Caja', 'Resumen de movimientos y estado de caja.')}<div class="notice">Los datos de demostración no representan movimientos reales.</div>`;
-  }
   const caja = datos.cajas.find((item) => item.estado === 'ABIERTA');
   const saldo = caja ? guaranies(caja.saldoActual) : guaranies(0);
   const ingresos = datos.ingresos.reduce((total, ingreso) => total + Number(ingreso.monto), 0);

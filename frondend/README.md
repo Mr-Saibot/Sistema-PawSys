@@ -1,8 +1,22 @@
-# Frontend PawSys
+# Frontend de PawSys
 
-Interfaz web responsive hecha con HTML, CSS y TypeScript, sin dependencias de ejecución.
+Interfaz web responsive para las operaciones de la clínica. Está desarrollada en HTML, CSS y TypeScript, sin framework ni dependencias JavaScript de ejecución. La carpeta se llama `frondend` en el repositorio.
 
-## Desarrollo
+## Estructura
+
+| Ruta | Función |
+|---|---|
+| `index.html` | Documento de entrada |
+| `styles.css` | Diseño adaptable, componentes y estados de pantalla |
+| `src/controladores/` | Eventos de usuario, navegación y coordinación de operaciones |
+| `src/vistas/` | Pantallas de acceso, cliente, veterinario y administración |
+| `src/componentes/` | Marco de navegación, tablas, formularios y detalles reutilizables |
+| `src/servicios/api.ts` | Comunicación HTTP con la API y carga de datos |
+| `src/servicios/sesion.ts` | Persistencia local de la sesión |
+| `src/tipos.ts` | Tipos de datos que consume la interfaz |
+| `dist/` | Salida generada por TypeScript; no se edita manualmente |
+
+## Compilación y ejecución
 
 Desde la raíz del proyecto:
 
@@ -12,23 +26,28 @@ npm run preparar:base
 npm run iniciar
 ```
 
-La aplicación se sirve en `http://localhost:5500` y consume la API en `http://localhost:3000`. Las carpetas del workspace son `backend` y `frondend`.
+El servidor web local usa `http://localhost:5500`; la API por defecto está en `http://localhost:3000`. Para compilar solo esta parte:
 
-Para acceder desde un celular, configura en `backend/.env` el origen LAN en `FRONTEND_URL` y guarda en el inicio de sesión la dirección de API que use la IP local de la computadora. Consulta el [README principal](../README.md) para los pasos y el firewall.
+```powershell
+npm --prefix frondend run build
+```
 
-## Pantallas conectadas
+La URL de API se puede cambiar en **Configuración de conexión** antes de iniciar sesión. **Probar conexión** consulta `GET /` y muestra la respuesta de salud. La API debe permitir el origen del frontend en `FRONTEND_URL`.
 
-- Inicio de sesión, registro de clientes y vistas de demostración.
-- Cliente: alta y edición de sus mascotas, solicitudes, cancelación/reprogramación de turnos e instrucciones de pago por QR o efectivo.
-- Veterinario: pacientes, agenda, edición de turnos e historias clínicas, consultas y vacunaciones.
-- Administración: altas y edición de pacientes, clientes, equipo y administradores; agendas, turnos, historias clínicas, consultas, vacunaciones y caja.
+## Pantallas y operaciones
 
-Las bajas de cuentas de personas desactivan el acceso y conservan sus datos clínicos/financieros. La eliminación de registros clínicos está limitada a administración; el backend puede rechazar una baja si hay movimientos relacionados. Ingresos y egresos admiten registro y consulta porque la API no ofrece rutas para editarlos o eliminarlos.
+- **Acceso:** inicio de sesión, registro público de clientes y configuración de la API. No hay cuentas demo ni acceso simulado.
+- **Cliente:** alta y edición de mascotas propias, solicitud/cancelación/reprogramación de turnos, selección de veterinario disponible y consulta de instrucciones de pago.
+- **Veterinario:** consulta de pacientes y turnos, además de registro y mantenimiento de información clínica permitido por el backend.
+- **Administración:** gestión de clientes, mascotas, equipo, agendas, turnos, historias clínicas, consultas, vacunaciones y caja.
+- **Detalle de registros:** las pantallas con rutas de lectura por identificador permiten consultar el detalle desde el API.
 
-Los formularios requieren una sesión real, salvo el registro público y el modo de demostración. Las operaciones y permisos se validan en el backend.
+Las operaciones que la API no expone tampoco se simulan: ingresos y egresos se registran y consultan, pero no se editan ni eliminan desde la interfaz.
 
-## QR
+## Conexión, seguridad y pagos
 
-La interfaz muestra la imagen configurada en `PAYMENT_QR_IMAGE_URL`, junto con el alias/titular. La imagen QR real debe ser provista por la veterinaria; el sistema no inventa el código ni verifica pagos bancarios. Los ingresos por transferencia se registran manualmente luego de la comprobación en la cuenta.
+El cliente HTTP adjunta el token JWT en solicitudes protegidas y presenta los errores del servidor en la pantalla. Los permisos no dependen de ocultar botones: el backend es la autoridad para cada operación. La sesión se guarda localmente en el navegador; cierra sesión en dispositivos compartidos.
 
-`dist/` es generado por TypeScript; no se edita manualmente.
+El QR, alias y titular se cargan desde la configuración pública de pagos del backend. La veterinaria debe proporcionar el QR real. El pago por transferencia se verifica manualmente fuera de PawSys antes de registrar el ingreso; no se procesan tarjetas ni se confirma una operación bancaria automáticamente.
+
+Para acceso desde un celular, configura en el backend el origen LAN en CORS y coloca la URL LAN de la API en esta pantalla. Consulta la sección de red local en el [README principal](../README.md).

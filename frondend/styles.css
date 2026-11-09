@@ -15,6 +15,7 @@
   --muted: #7b847e;
   --line: #e6e9e2;
   --paper: #fff;
+  .detail-fields { grid-template-columns: minmax(0, 1fr); }
 }
 
 * { box-sizing: border-box; }
@@ -45,6 +46,14 @@ button:focus-visible, input:focus-visible { outline: 3px solid #8dc6a0; outline-
 .record-editor summary { cursor: pointer; }
 .compact-form { min-width: min(390px, 78vw); margin-top: 8px; border: 1px solid var(--line); border-radius: 7px; background: #f8faf7; }
 .record-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.record-dialog { width: min(620px, calc(100vw - 28px)); max-height: min(80vh, 760px); margin: auto; overflow: auto; border: 1px solid var(--line); border-radius: 10px; padding: 22px; background: #fff; color: var(--ink); box-shadow: 0 24px 80px rgba(20, 42, 30, .24); }
+.record-dialog::backdrop { background: rgba(15, 30, 22, .52); backdrop-filter: blur(2px); }
+.record-dialog .section-heading { align-items: center; padding: 0 0 12px; }
+.record-dialog .section-heading h2 { margin: 0; }
+.detail-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin: 0; }
+.detail-fields > div { min-width: 0; border-top: 1px solid var(--line); padding: 12px 0; }
+.detail-fields dt { margin-bottom: 5px; color: var(--muted); font-size: 11px; }
+.detail-fields dd { overflow-wrap: anywhere; margin: 0; color: var(--ink); font-size: 13px; font-weight: 600; }
 .primary-button { min-height: 48px; border: 0; border-radius: 7px; padding: 0 20px; background: var(--forest); color: white; font-weight: 700; transition: background .18s, transform .18s; }
 .primary-button:hover { background: var(--forest-deep); transform: translateY(-1px); }
 .login-submit { width: 100%; }
@@ -57,15 +66,12 @@ button:focus-visible, input:focus-visible { outline: 3px solid #8dc6a0; outline-
 .visual-copy span { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px; }
 .visual-copy h2 { max-width: 570px; margin: 12px 0; font: 700 clamp(28px, 4vw, 46px)/1.12 'Manrope', sans-serif; letter-spacing: 0; }
 .visual-copy p { max-width: 440px; margin: 0; color: rgba(255,255,255,.82); line-height: 1.6; }
-.demo-box { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
-.demo-box > p { margin: 0 0 11px; color: var(--muted); font-size: 12px; }
-.demo-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-.demo-button { border: 1px solid #dfe4dd; border-radius: 6px; padding: 9px 11px; background: #fff; color: var(--forest); font-size: 12px; font-weight: 700; }
-.demo-button:hover { border-color: var(--leaf); background: #f4faf5; }
 .api-config { margin-top: 23px; border-top: 1px solid var(--line); padding-top: 14px; }
 .api-config summary { color: var(--muted); font-size: 12px; cursor: pointer; }
 .api-config .field { margin-bottom: 7px; }
 .api-hint { color: var(--muted); font-size: 11px; line-height: 1.45; }
+.api-actions { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0; }
+.api-config #api-status { min-height: 16px; }
 
 .app-shell { min-height: 100vh; display: grid; grid-template-columns: 244px minmax(0, 1fr); }
 .sidebar { display: flex; flex-direction: column; min-height: 100vh; padding: 25px 16px 18px; background: var(--forest); color: #fff; }
@@ -153,7 +159,6 @@ tbody tr:last-child td { border-bottom: 0; }
 .search-field { width: 190px; height: 34px; border: 1px solid var(--line); border-radius: 5px; padding: 0 10px; color: var(--ink); font-size: 11px; }
 .toast { position: fixed; right: 20px; bottom: 20px; z-index: 5; max-width: min(380px, calc(100vw - 40px)); border-radius: 6px; padding: 12px 16px; background: var(--forest-deep); color: white; font-size: 12px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: .2s; }
 .toast.show { opacity: 1; transform: translateY(0); }
-.demo-label { display: inline-flex; border: 1px solid #efd5a6; border-radius: 20px; padding: 5px 8px; color: #8a6534; background: #fff8eb; font-size: 10px; font-weight: 700; }
 .fade-in { animation: rise .35s ease both; }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -193,8 +198,6 @@ tbody tr:last-child td { border-bottom: 0; }
   .main-area { padding-right: 12px; padding-left: 12px; }
   .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stat-top { font-size: 10px; }
-  .demo-buttons { display: grid; grid-template-columns: 1fr; }
-  .demo-button { text-align: left; }
   .search-field { width: 130px; }
 }
 

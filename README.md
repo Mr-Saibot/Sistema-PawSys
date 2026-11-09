@@ -1,26 +1,50 @@
 # PawSys
 
-Sistema de gestión veterinaria con API NestJS/Prisma/MySQL y una interfaz responsive de HTML, CSS y TypeScript.
+Sistema de gestión para una clínica veterinaria. Reúne una API REST, una interfaz web adaptable a escritorio y celulares, y una base de datos relacional para organizar pacientes, turnos, atención clínica y caja.
+
+## Alcance del sistema
+
+- **Cuentas y perfiles:** acceso con correo y contraseña, registro público de clientes y creación de personal por administración.
+- **Mascotas:** datos del paciente, responsable, especie, peso, fecha de nacimiento y observaciones.
+- **Turnos y agendas:** solicitud, consulta, cancelación y reprogramación de turnos, con veterinarios disponibles para seleccionar.
+- **Atención veterinaria:** historias clínicas, consultas y vacunaciones relacionadas con las mascotas.
+- **Administración:** gestión de clientes, veterinarios, administradores y agendas.
+- **Caja:** apertura/cierre y reporte diario, registro de ingresos y egresos.
+- **Pagos:** efectivo y transferencia/QR con instrucciones de la veterinaria. La transferencia se verifica manualmente; PawSys no procesa pagos ni confirma depósitos.
+
+## Arquitectura
+
+| Componente | Tecnología | Ubicación |
+|---|---|---|
+| API y reglas de negocio | NestJS, TypeScript, JWT y Prisma | [`backend/`](./backend/README.md) |
+| Persistencia | MySQL, con modelos descritos en Prisma | `backend/schema.prisma` |
+| Interfaz responsive | HTML, CSS y TypeScript compilado | [`frondend/`](./frondend/README.md) |
+| Inicio local conjunto | Node.js | `herramientas/iniciar-desarrollo.mjs` |
+
+El frontend consume la API REST mediante `fetch`. Las rutas protegidas requieren un token JWT y el backend aplica la validación y autorización por rol. La interfaz no reemplaza esos controles.
 
 ## Requisitos
 
 - Node.js y npm.
-- Python, para servir el frontend.
-- MySQL con una base de datos llamada `PawSys`.
+- MySQL y una base de datos llamada `PawSys`.
+- Python disponible en `PATH` para servir los archivos del frontend durante el desarrollo.
 
-## Preparación inicial
+## Instalación y configuración
 
-Instala las dependencias desde la raíz del proyecto:
+Desde la raíz del proyecto, en PowerShell:
 
 ```powershell
 npm run instalar
-```
-
-Crea tu archivo local de configuración y edítalo una sola vez con el usuario y contraseña de MySQL:
-
-```powershell
 Copy-Item .\backend\.env.example .\backend\.env
 notepad .\backend\.env
+```
+
+Configura `DATABASE_URL` con las credenciales locales de MySQL, reemplaza `JWT_SECRET` por un valor aleatorio largo y revisa `PORT`, `FRONTEND_URL` y las opciones de pago. No compartas ni subas `backend/.env`.
+
+Si la base todavía no existe, créala desde MySQL:
+
+```sql
+CREATE DATABASE PawSys;
 ```
 
 Genera el cliente Prisma:
@@ -29,54 +53,59 @@ Genera el cliente Prisma:
 npm run preparar:base
 ```
 
-La base `PawSys` debe existir en MySQL. Puedes crearla una vez desde Workbench o phpMyAdmin:
+`npm run sincronizar:base` ejecuta `prisma db push`. Úsalo solo para una base nueva o después de respaldar y revisar el cambio de esquema; no lo ejecutes a ciegas sobre una base que ya contiene datos.
 
-```sql
-CREATE DATABASE PawSys;
-```
-
-El archivo `.env` es local e ignorado por Git. La base `PawSys` de tu entorno ya tiene tablas y relaciones, así que no ejecutes `db push` sobre ella: las claves foráneas ya existen.
-
-Para una base completamente nueva y vacía, el comando explícito para crear el esquema es `npm run sincronizar:base`. No lo uses sobre una base con datos sin antes hacer un respaldo y revisar el diff de Prisma.
-
-## Iniciar ambos proyectos
-
-Desde la raíz:
+## Ejecución
 
 ```powershell
 npm run iniciar
 ```
 
-La API queda en `http://localhost:3000` y la interfaz en `http://localhost:5500`. El iniciador compila y sirve el frontend y levanta el backend. Para apagar ambos, presiona `Ctrl+C`.
+La API queda en `http://localhost:3000` y el frontend en `http://localhost:5500`. El iniciador compila el frontend e inicia ambos procesos. Para detenerlos, usa `Ctrl+C`.
 
-Si cambias el esquema de Prisma, vuelve a ejecutar `npm run preparar:base`. Si cambias TypeScript del frontend mientras está activo, vuelve a ejecutar `npm --prefix frondend run build`.
+Comprobaciones disponibles:
+
+```powershell
+npm run compilar
+npm --prefix backend run lint
+$env:NODE_OPTIONS='--experimental-vm-modules'
+npm --prefix backend test -- --runInBand
+```
+
+El último comando configura la ejecución de Jest en el entorno ESM usado por las pruebas actuales.
+
+## Uso y roles
+
+- **Cliente:** se registra desde la pantalla de acceso; gestiona sus mascotas, solicita y administra sus turnos, y consulta instrucciones de pago.
+- **Veterinario:** consulta pacientes y agenda asignada, y registra información clínica.
+- **Administrador:** gestiona datos generales, personal, agendas, turnos y caja.
+
+El registro abierto crea cuentas de cliente, no de personal. Las cuentas de veterinarios y administradores las crea un administrador autenticado. La provisión del primer administrador es una operación inicial de la instalación y no existe un registro público para ese rol.
 
 ## Acceso desde un celular en la misma red
 
-1. Configura `FRONTEND_URL` en `backend/.env` con el origen del frontend en la computadora y el origen LAN que usará el celular, separados por coma. Ejemplo: `http://localhost:5500,http://192.168.1.25:5500`.
-2. En **Configuración de conexión** del inicio de sesión, guarda la dirección de la API usando la IP LAN de la computadora, por ejemplo `http://192.168.1.25:3000`.
-3. Permite los puertos 3000 y 5500 en el firewall de desarrollo si Windows los bloquea.
+1. Añade a `FRONTEND_URL` en `backend/.env` el origen LAN desde el que se abrirá la web, además del origen local. Sepáralos por coma, por ejemplo: `http://localhost:5500,http://192.168.1.25:5500`.
+2. En **Configuración de conexión** del inicio de sesión, guarda la URL de API con la IP de la computadora, por ejemplo `http://192.168.1.25:3000`.
+3. Usa **Probar conexión** para comprobar la ruta de salud de la API.
+4. Conecta ambos dispositivos a la misma red y permite los puertos de desarrollo en el firewall si es necesario.
 
-El celular y la computadora deben estar conectados a la misma red. No expongas estos puertos directamente a Internet.
+No expongas estos puertos directamente a Internet.
 
-## Caja y pagos
+## Configuración de pagos
 
-La caja permite registrar ingresos en efectivo y transferencias/QR, además de egresos. **El QR no confirma una transferencia:** el personal debe verificar el pago en la cuenta bancaria antes de registrarlo como ingreso.
+Para mostrar los datos reales de la veterinaria:
 
-Para mostrar el QR real de la veterinaria:
+1. Coloca la imagen QR proporcionada por el banco en `frondend/qr-veterinaria.png` (o utiliza una URL pública accesible).
+2. Configura `PAYMENT_QR_IMAGE_URL`, `PAYMENT_ALIAS` y `PAYMENT_HOLDER` en `backend/.env`.
+3. Reinicia la API y verifica la información en **Pagos** o **Caja**.
 
-- Copia la imagen QR provista por el banco a `frondend/qr-veterinaria.png`.
-- Configura `PAYMENT_QR_IMAGE_URL="/qr-veterinaria.png"`, `PAYMENT_ALIAS` y `PAYMENT_HOLDER` en `backend/.env`.
-- Reinicia el backend. El cliente verá las instrucciones en **Pagos** y el administrador podrá ver el QR desde **Caja**.
+El QR solo muestra instrucciones. El personal debe confirmar la transferencia en la cuenta bancaria antes de registrarla como ingreso. PawSys no almacena datos de tarjetas ni ofrece una pasarela de pago.
 
-PawSys no almacena datos de tarjetas ni verifica transferencias automáticamente.
+## Límites funcionales actuales
 
-## Roles
+- Ingresos y egresos se pueden registrar y consultar; no hay rutas de edición o eliminación para esos movimientos.
+- La eliminación lógica de personas conserva la relación de sus registros históricos.
+- La disponibilidad de agenda y las operaciones permitidas dependen de las validaciones del backend.
+- No se incluye confirmación automática de transferencias, recuperación de contraseñas ni un proveedor de pagos.
 
-- **Cliente:** consulta y edita sus mascotas, solicita/cancela/reprograma turnos y ve las instrucciones de pago.
-- **Veterinario:** consulta pacientes y su agenda, registra historias clínicas, consultas y vacunaciones.
-- **Administrador:** gestiona pacientes, clientes, equipo y administradores; edita agendas/turnos y administra historias clínicas, caja, ingresos y egresos.
-
-En las pantallas de gestión se pueden editar los registros para los que la API expone `PATCH`. Las bajas de clientes y personal desactivan su cuenta para conservar el historial; la baja de mascotas también es lógica. Ingresos y egresos solo permiten alta y consulta, ya que el backend no expone rutas para editarlos o eliminarlos.
-
-El backend aplica los permisos; ocultar pantallas en el frontend no se considera autorización.
+Para detalle de endpoints, configuración y responsabilidades del servidor, consulta [`backend/README.md`](./backend/README.md). Para pantallas, estructura y conexión, consulta [`frondend/README.md`](./frondend/README.md).

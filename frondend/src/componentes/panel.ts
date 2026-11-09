@@ -27,5 +27,5 @@ export function renderizarInicioPanel(
   indicadores: [string, string, string, string][],
   datos: DatosPanel,
 ): string {
-  return `${renderizarEncabezado(titulo, subtitulo)}${renderizarBanner(bienvenida, mensaje)}${renderizarIndicadores(indicadores)}<div class="content-grid"><div>${renderizarSeccionMascotas(datos.mascotas.slice(0, 4), 'Pacientes recientes', true)}</div><div>${renderizarSeccionTurnos(datos.turnos, datos.demostracion ?? false)}</div></div>`;
+  return `${renderizarEncabezado(titulo, subtitulo)}${renderizarBanner(bienvenida, mensaje)}${renderizarIndicadores(indicadores)}<div class="content-grid"><div>${renderizarSeccionMascotas(datos.mascotas.slice(0, 4), 'Pacientes recientes', true)}</div><div>${renderizarSeccionTurnos(datos.turnos)}</div></div>`;
 }

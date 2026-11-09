@@ -9,7 +9,6 @@ export interface Usuario {
   id: number;
   correo: string;
   rol: Rol;
-  nombreDemostracion?: string;
   cliente?: Perfil;
   veterinario?: Perfil;
   administrador?: Perfil;
@@ -17,8 +16,7 @@ export interface Usuario {
 
 export interface Sesion {
   usuario: Usuario;
-  token: string | null;
-  demostracion: boolean;
+  token: string;
 }
 
 export interface Mascota {
@@ -128,7 +126,6 @@ export interface DatosPanel {
   administradores: Administrador[];
   conectado: boolean;
   errorConexion: boolean;
-  demostracion?: boolean;
   cajas: Caja[];
   ingresos: Ingreso[];
   egresos: Egreso[];

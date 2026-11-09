@@ -1,6 +1,6 @@
 import { API_PREDETERMINADA, CLAVE_API } from '../constantes.js';
-import { crearDatosVacios } from '../datos/datos-demostracion.js';
-import type { ConfiguracionPagos, DatosPanel, DatosRegistroCliente, Rol, Sesion, Usuario } from '../tipos.js';
+import { crearDatosVacios } from '../datos/datos-iniciales.js';
+import type { ConfiguracionPagos, DatosPanel, DatosRegistroCliente, Sesion, Usuario } from '../tipos.js';
 
 interface RespuestaInicioSesion {
   user: Usuario;
@@ -19,6 +19,13 @@ export function guardarUrlApi(valor: string): void {
   const normalizado = valor.trim().replace(/\/$/, '');
   if (!/^https?:\/\//i.test(normalizado)) throw new Error('Escribe una dirección válida que comience con http:// o https://.');
   localStorage.setItem(CLAVE_API, normalizado);
+}
+
+export async function probarConexionApi(): Promise<string> {
+  const respuesta = await fetch(`${urlBaseApi()}/`);
+  const mensaje = await respuesta.text();
+  if (!respuesta.ok) throw new Error(mensaje || `La API respondió con estado ${respuesta.status}.`);
+  return mensaje;
 }
 
 async function leerRespuesta<T>(respuesta: Response, mensajePredeterminado: string): Promise<T> {
@@ -55,7 +62,7 @@ export async function iniciarSesion(correo: string, clave: string): Promise<Sesi
   });
   const resultado = await leerRespuesta<Partial<RespuestaInicioSesion>>(respuesta, 'No se pudo iniciar sesión. Revisa tus datos.');
   if (!resultado.access_token || !resultado.user?.rol) throw new Error('La respuesta del backend no contiene usuario y token.');
-  return { usuario: resultado.user, token: resultado.access_token, demostracion: false };
+  return { usuario: resultado.user, token: resultado.access_token };
 }
 
 export async function enviarApi<T>(ruta: string, token: string, metodo = 'GET', datos?: unknown): Promise<T> {
@@ -90,7 +97,7 @@ export async function cargarDatosPanel(sesion: Sesion): Promise<DatosPanel> {
   if (!token) return datos;
 
   const recursos: { clave: keyof DatosPanel; ruta: string }[] = [
-    { clave: 'mascotas', ruta: '/mascotas' },
+    { clave: 'mascotas', ruta: sesion.usuario.rol === 'CLIENTE' ? '/clientes/me/mascotas' : '/mascotas' },
     { clave: 'turnos', ruta: '/turnos' },
     { clave: 'veterinarios', ruta: sesion.usuario.rol === 'CLIENTE' ? '/veterinarios/disponibles' : '/veterinarios' },
   ];
@@ -141,8 +148,4 @@ export async function cargarDatosPanel(sesion: Sesion): Promise<DatosPanel> {
   });
   datos.errorConexion = datos.errorRecursos.length > 0;
   return datos;
-}
-
-export function esRol(valor: string | undefined): valor is Rol {
-  return valor === 'CLIENTE' || valor === 'VETERINARIO' || valor === 'ADMINISTRADOR';
 }

@@ -1,13 +1,14 @@
 import { API_PREDETERMINADA } from '../constantes.js';
-import { crearDatosDemo, crearSesionDemo, crearDatosVacios } from '../datos/datos-demostracion.js';
-import { renderizarMarcoApp } from '../componentes/marco-app.js';
+import { crearDatosVacios } from '../datos/datos-iniciales.js';
+import { paginaDisponibleParaRol, renderizarMarcoApp } from '../componentes/marco-app.js';
+import { renderizarDetalleRegistro } from '../componentes/detalle-registro.js';
 import { renderizarContenidoPanel } from '../vistas/contenido-panel.js';
 import { renderizarInicioSesion } from '../vistas/inicio-sesion.js';
-import { obtenerUrlApiGuardada, esRol, cargarDatosPanel, iniciarSesion, guardarUrlApi, registrarCliente, enviarApi, obtenerConfiguracionPagos } from '../servicios/api.js';
+import { obtenerUrlApiGuardada, cargarDatosPanel, iniciarSesion, guardarUrlApi, registrarCliente, enviarApi, obtenerConfiguracionPagos, probarConexionApi } from '../servicios/api.js';
 import { limpiarSesion, leerSesion, guardarSesion } from '../servicios/sesion.js';
 import { obtenerMensajeError } from '../utilidades/formato-html.js';
 import { renderizarFormularioRegistro } from '../vistas/registro-cliente.js';
-import type { ConfiguracionPagos, DatosPanel, ReporteCaja, Rol, Sesion } from '../tipos.js';
+import type { ConfiguracionPagos, DatosPanel, ReporteCaja, Sesion } from '../tipos.js';
 
 export class ControladorApp {
   private readonly raiz: HTMLElement;
@@ -48,14 +49,8 @@ export class ControladorApp {
     if (campoCorreo && correoInicial) campoCorreo.value = correoInicial;
     formulario?.insertAdjacentHTML('afterend', '<p class="login-bottom">¿Eres nuevo cliente? <button class="text-button" type="button" data-accion="abrir-registro">Registrarse</button></p>');
     this.raiz.querySelector('[data-accion="abrir-registro"]')?.addEventListener('click', () => this.renderizarRegistroCliente());
-    this.raiz.querySelectorAll<HTMLButtonElement>('[data-rol]').forEach((boton) => {
-      boton.addEventListener('click', () => {
-        const rol = boton.dataset.rol;
-        if (esRol(rol)) this.entrarDemo(rol);
-      });
-    });
-    this.raiz.querySelector('[data-accion="forgot"]')?.addEventListener('click', () => this.mostrarAviso('Solicita el restablecimiento de contraseña a la clínica.'));
     this.raiz.querySelector('[data-accion="save-api"]')?.addEventListener('click', () => this.gestionarGuardadoUrlApi());
+    this.raiz.querySelector('[data-accion="test-api"]')?.addEventListener('click', () => void this.gestionarPruebaConexionApi());
   }
 
   private renderizarRegistroCliente(): void {
@@ -116,6 +111,7 @@ export class ControladorApp {
     try {
       this.sesion = await iniciarSesion(correo.value, clave.value);
       guardarSesion(this.sesion);
+      this.pagina = 'Inicio';
       await this.actualizarDatos();
       this.renderizarPanel();
     } catch (causa) {
@@ -123,14 +119,6 @@ export class ControladorApp {
       boton.disabled = false;
       boton.textContent = 'Iniciar sesión';
     }
-  }
-
-  private entrarDemo(rol: Rol): void {
-    this.sesion = crearSesionDemo(rol);
-    this.datos = { ...crearDatosDemo(), demostracion: true };
-    this.reporteCaja = null;
-    this.pagina = 'Inicio';
-    this.renderizarPanel();
   }
 
   private gestionarGuardadoUrlApi(): void {
@@ -144,6 +132,20 @@ export class ControladorApp {
     }
   }
 
+  private async gestionarPruebaConexionApi(): Promise<void> {
+    const entrada = this.raiz.querySelector<HTMLInputElement>('#api-url');
+    const estado = this.raiz.querySelector<HTMLElement>('#api-status');
+    if (!entrada || !estado) return;
+    try {
+      guardarUrlApi(entrada.value);
+      estado.textContent = 'Probando conexión…';
+      const resultado = await probarConexionApi();
+      estado.textContent = resultado || 'La API respondió correctamente.';
+    } catch (causa) {
+      estado.textContent = obtenerMensajeError(causa, 'No se pudo conectar con la API.');
+    }
+  }
+
   private async actualizarDatos(): Promise<void> {
     if (this.sesion) {
       this.datos = await cargarDatosPanel(this.sesion);
@@ -154,19 +156,28 @@ export class ControladorApp {
   private renderizarPanel(): void {
     if (!this.sesion) return this.renderizarInicioSesion();
     const usuario = this.sesion.usuario;
+    if (!paginaDisponibleParaRol(usuario.rol, this.pagina)) this.pagina = 'Inicio';
     const perfil = usuario.cliente || usuario.veterinario || usuario.administrador;
-    const nombre = usuario.nombreDemostracion || (perfil ? `${perfil.nombre} ${perfil.apellido}` : usuario.correo.split('@')[0]);
-    const datos = { ...this.datos, demostracion: this.sesion.demostracion };
+    const nombre = perfil ? `${perfil.nombre} ${perfil.apellido}` : usuario.correo.split('@')[0];
+    const datos = this.datos;
     const contenido = renderizarContenidoPanel(usuario.rol, nombre, this.pagina, datos, this.sesion, this.configuracionPagos, this.errorConfiguracionPagos, this.reporteCaja);
     this.raiz.innerHTML = renderizarMarcoApp(usuario.rol, nombre, this.pagina, datos, contenido);
 
     this.raiz.querySelectorAll<HTMLButtonElement>('[data-pagina]').forEach((boton) => {
       boton.addEventListener('click', () => {
-        this.pagina = boton.dataset.pagina || 'Inicio';
+        const paginaSolicitada = boton.dataset.pagina || 'Inicio';
+        if (!paginaDisponibleParaRol(usuario.rol, paginaSolicitada)) return;
+        this.pagina = paginaSolicitada;
         this.renderizarPanel();
       });
     });
     this.raiz.querySelector('[data-accion="logout"]')?.addEventListener('click', () => this.cerrarSesion());
+    this.raiz.querySelector<HTMLButtonElement>('[data-accion="cerrar-detalle"]')?.addEventListener('click', () => {
+      this.raiz.querySelector<HTMLDialogElement>('#detail-dialog')?.close();
+    });
+    this.raiz.querySelectorAll<HTMLButtonElement>('[data-api-detail]').forEach((boton) => {
+      boton.addEventListener('click', () => void this.mostrarDetalle(boton));
+    });
     this.raiz.querySelector('[data-accion="menu"]')?.addEventListener('click', () => this.raiz.querySelector('#sidebar')?.classList.toggle('open'));
     this.raiz.querySelector('[data-accion="refresh"]')?.addEventListener('click', () => void this.gestionarActualizacion());
     this.raiz.querySelectorAll<HTMLFormElement>('[data-api-form]').forEach((formulario) => {
@@ -212,6 +223,13 @@ export class ControladorApp {
     const campo = (nombre: string) => String(new FormData(formulario).get(nombre) || '').trim();
     const peso = campo('peso');
     const fechaNacimiento = campo('fechaNacimiento');
+    const clienteId = campo('clienteId');
+    const idClienteSeleccionado = Number(clienteId);
+    if (this.sesion.usuario.rol !== 'CLIENTE'
+      && (!clienteId || !Number.isInteger(idClienteSeleccionado) || idClienteSeleccionado < 1)) {
+      error.textContent = 'Selecciona el cliente responsable de la mascota.';
+      return;
+    }
     const datos = {
       nombre: campo('nombre'),
       especie: campo('especie'),
@@ -219,7 +237,7 @@ export class ControladorApp {
       peso: peso ? Number(peso) : undefined,
       fechaNacimiento: fechaNacimiento || undefined,
       observaciones: campo('observaciones') || undefined,
-      ...(this.sesion.usuario.rol === 'CLIENTE' ? {} : { clienteId: Number(campo('clienteId')) }),
+      ...(this.sesion.usuario.rol === 'CLIENTE' ? {} : { clienteId: idClienteSeleccionado }),
     };
     boton.disabled = true;
     error.textContent = '';
@@ -235,39 +253,57 @@ export class ControladorApp {
   }
 
   private async enviarFormularioApi(evento: SubmitEvent, formulario: HTMLFormElement): Promise<void> {
-      evento.preventDefault();
-      const endpoint = formulario.dataset.endpoint;
-      const metodo = formulario.dataset.method;
-      const boton = formulario.querySelector<HTMLButtonElement>('button[type="submit"]');
-      const error = formulario.querySelector<HTMLElement>('.login-error');
-      if (!endpoint || !metodo || !boton || !this.sesion?.token) return;
+    evento.preventDefault();
+    const endpoint = formulario.dataset.endpoint;
+    const metodo = formulario.dataset.method;
+    const boton = formulario.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const error = formulario.querySelector<HTMLElement>('.login-error');
+    if (!endpoint || !metodo || !boton || !this.sesion?.token) return;
 
-      const datos: Record<string, string | number | boolean | null> = {};
-      for (const control of Array.from(formulario.elements)) {
-        if (!(control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement) || !control.name) continue;
-        if (control instanceof HTMLInputElement && control.type === 'checkbox') {
-          datos[control.name] = control.checked;
-        } else if (control.value.trim()) {
-          datos[control.name] = control instanceof HTMLInputElement && control.type === 'number'
-            ? Number(control.value)
-            : control.value.trim();
-        } else if (control.dataset.nullable !== undefined) {
-          datos[control.name] = null;
-        }
-      }
-
-      boton.disabled = true;
-      if (error) error.textContent = '';
-      try {
-        await enviarApi(endpoint, this.sesion.token, metodo, datos);
-        await this.actualizarDatos();
-        this.renderizarPanel();
-        this.mostrarAviso('Cambios guardados correctamente.');
-      } catch (causa) {
-        if (error) error.textContent = obtenerMensajeError(causa, 'No se pudieron guardar los cambios.');
-        boton.disabled = false;
+    const datos: Record<string, string | number | boolean | null> = {};
+    for (const control of Array.from(formulario.elements)) {
+      if (!(control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement) || !control.name) continue;
+      if (control instanceof HTMLInputElement && control.type === 'checkbox') {
+        datos[control.name] = control.checked;
+      } else if (control.value.trim()) {
+        datos[control.name] = control instanceof HTMLInputElement && control.type === 'number'
+          ? Number(control.value)
+          : control.value.trim();
+      } else if (control.dataset.nullable !== undefined) {
+        datos[control.name] = null;
       }
     }
+
+    boton.disabled = true;
+    if (error) error.textContent = '';
+    try {
+      await enviarApi(endpoint, this.sesion.token, metodo, datos);
+      await this.actualizarDatos();
+      this.renderizarPanel();
+      this.mostrarAviso('Cambios guardados correctamente.');
+    } catch (causa) {
+      if (error) error.textContent = obtenerMensajeError(causa, 'No se pudieron guardar los cambios.');
+      boton.disabled = false;
+    }
+  }
+
+  private async mostrarDetalle(boton: HTMLButtonElement): Promise<void> {
+    const ruta = boton.dataset.apiDetail;
+    const dialogo = this.raiz.querySelector<HTMLDialogElement>('#detail-dialog');
+    const titulo = this.raiz.querySelector<HTMLElement>('#detail-title');
+    const contenido = this.raiz.querySelector<HTMLElement>('#detail-content');
+    if (!ruta || !dialogo || !titulo || !contenido || !this.sesion?.token) return;
+
+    titulo.textContent = boton.dataset.detailTitle || 'Detalle del registro';
+    contenido.textContent = 'Cargando información…';
+    dialogo.showModal();
+    try {
+      const resultado = await enviarApi<unknown>(ruta, this.sesion.token);
+      contenido.innerHTML = renderizarDetalleRegistro(resultado);
+    } catch (causa) {
+      contenido.textContent = obtenerMensajeError(causa, 'No se pudo cargar el detalle.');
+    }
+  }
 
   private async eliminarRecurso(boton: HTMLButtonElement): Promise<void> {
       const endpoint = boton.dataset.apiDelete;
@@ -586,10 +622,6 @@ export class ControladorApp {
   }
 
   private async gestionarActualizacion(): Promise<void> {
-    if (this.sesion?.demostracion) {
-      this.mostrarAviso('Los datos de demostración ya están actualizados.');
-      return;
-    }
     await this.actualizarDatos();
     this.renderizarPanel();
     this.mostrarAviso('Datos actualizados.');
@@ -607,6 +639,7 @@ export class ControladorApp {
     this.sesion = null;
     this.datos = crearDatosVacios();
     this.reporteCaja = null;
+    this.pagina = 'Inicio';
     limpiarSesion();
     this.renderizarInicioSesion();
   }
