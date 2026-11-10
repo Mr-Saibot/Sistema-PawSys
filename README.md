@@ -109,3 +109,5 @@ El QR solo muestra instrucciones. El personal debe confirmar la transferencia en
 - No se incluye confirmación automática de transferencias, recuperación de contraseñas ni un proveedor de pagos.
 
 Para detalle de endpoints, configuración y responsabilidades del servidor, consulta [`backend/README.md`](./backend/README.md). Para pantallas, estructura y conexión, consulta [`frondend/README.md`](./frondend/README.md).
+
+Para recorrer manualmente los flujos de cliente, veterinario y administrador y comprobar todas las rutas de la API, consulta la [Guía de pruebas manuales](./GUIA-PRUEBAS-MANUALES.md).

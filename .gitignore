@@ -3,3 +3,4 @@ node_modules/
 Sistema-PawSys-backend/.env
 **/dist/
 *.log
+GUIA-PRUEBAS-MANUALES.md
