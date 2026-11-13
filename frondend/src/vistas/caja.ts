@@ -6,6 +6,17 @@ function guaranies(valor: number | string): string {
   return new Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG', maximumFractionDigits: 0 }).format(Number(valor));
 }
 
+function fechaActualParaguay(): string {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Asuncion',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const obtener = (tipo: string) => partes.find((parte) => parte.type === tipo)?.value;
+  return `${obtener('year')}-${obtener('month')}-${obtener('day')}`;
+}
+
 export function renderizarCaja(
   datos: DatosPanel,
   configuracion: ConfiguracionPagos | null | undefined,
@@ -33,9 +44,28 @@ export function renderizarCaja(
   const filas = movimientos.length
     ? movimientos.slice(0, 30).map((item) => `<tr><td>${escaparHtml(item.concepto)}</td><td>${escaparHtml(item.responsable)}</td><td>${escaparHtml(new Date(item.fecha).toLocaleString('es-PY'))}</td><td>${escaparHtml(item.tipo)}</td><td>${escaparHtml(guaranies(item.monto))}</td></tr>`).join('')
     : '<tr><td colspan="5"><div class="empty-state">No hay movimientos registrados.</div></td></tr>';
-  const reportes = reporte ? `<section class="section-block"><div class="section-heading"><div><h2>Reporte de caja #${reporte.cajaId}</h2><p>Estado: ${escaparHtml(reporte.estado)}</p></div></div>${renderizarIndicadores([['Ingresos', guaranies(reporte.totalIngresos), 'Total de la caja', '↗'], ['Egresos', guaranies(reporte.totalEgresos), 'Total de la caja', '↘'], ['Saldo calculado', guaranies(Number(reporte.totalIngresos) - Number(reporte.totalEgresos)), 'Sin saldo inicial', '=']])}</section>` : '';
+  const reporteFecha = reporte?.fecha || fechaActualParaguay();
+  const filtroReporte = `<label class="field">Fecha del reporte<input id="fecha-reporte-caja" type="date" value="${escaparHtml(reporteFecha)}" /></label>`;
+  const reportes = reporte ? `<section class="section-block"><div class="section-heading"><div><h2>Reporte diario de caja #${reporte.cajaId}</h2><p>Fecha: ${escaparHtml(reporte.fecha)} · Estado: ${escaparHtml(reporte.estado)}</p></div></div>${renderizarIndicadores([['Ingresos', guaranies(reporte.totalIngresos), 'Del día seleccionado', '↗'], ['Egresos', guaranies(reporte.totalEgresos), 'Del día seleccionado', '↘'], ['Balance del día', guaranies(Number(reporte.totalIngresos) - Number(reporte.totalEgresos)), 'Ingresos menos egresos', '=']])}</section>` : '';
+  const cobrosPendientes = [
+    ...datos.consultas.filter((item) => !item.ingreso).map((item) => ({
+      tipo: 'consulta',
+      id: item.id,
+      detalle: `Consulta: ${item.motivo}`,
+      mascota: item.historial?.mascota?.nombre || `Historial #${item.historialId}`,
+      costo: item.costo,
+    })),
+    ...datos.vacunaciones.filter((item) => !item.ingreso).map((item) => ({
+      tipo: 'vacunacion',
+      id: item.id,
+      detalle: `Vacunación: ${item.vacuna}`,
+      mascota: item.historial?.mascota?.nombre || `Historial #${item.historialId}`,
+      costo: item.costo,
+    })),
+  ];
+  const seccionCobrosPendientes = `<section class="section-block"><div class="section-heading"><div><h2>Atenciones pendientes de cobro</h2><p>Registra el ingreso solo después de recibir efectivo o verificar la transferencia.</p></div></div>${!caja ? '<div class="notice">Abre una caja para cobrar atenciones.</div>' : cobrosPendientes.length ? `<div class="table-wrap"><table><thead><tr><th>Atención</th><th>Mascota</th><th>Monto</th><th>Confirmar pago recibido</th></tr></thead><tbody>${cobrosPendientes.map((item) => `<tr><td>${escaparHtml(item.detalle)}</td><td>${escaparHtml(item.mascota)}</td><td>${escaparHtml(guaranies(item.costo))}</td><td><form class="form-grid compact-form" data-cobro-atencion data-tipo-atencion="${item.tipo}" data-id-atencion="${item.id}"><label class="field">Forma de pago<select name="formaPago" required><option value="EFECTIVO">Efectivo</option><option value="TRANSFERENCIA_QR">Transferencia / QR verificada</option></select></label><button class="primary-button" type="submit">Registrar cobro</button><div class="login-error" role="alert"></div></form></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty-state">No hay consultas o vacunaciones pendientes de cobro.</div>'}</section>`;
   const cajas = datos.cajas.length
     ? `<section class="section-block"><div class="section-heading"><div><h2>Historial de cajas</h2><p>${datos.cajas.length} cajas registradas</p></div></div><div class="table-wrap"><table><thead><tr><th>Número</th><th>Apertura</th><th>Estado</th><th>Saldo</th><th>Acciones</th></tr></thead><tbody>${datos.cajas.map((item) => `<tr><td>#${item.id}</td><td>${escaparHtml(new Date(item.fechaApertura).toLocaleString('es-PY'))}</td><td>${escaparHtml(item.estado)}</td><td>${guaranies(item.saldoActual)}</td><td><button class="text-button" type="button" data-reporte-caja="${item.id}">Ver reporte</button></td></tr>`).join('')}</tbody></table></div></section>`
     : '';
-  return `${renderizarEncabezado('Caja', 'Gestiona la caja y registra cobros en guaraníes.')}${datos.errorConexion ? `<div class="notice notice-error">Algunos datos no se cargaron: ${escaparHtml(datos.errorRecursos.join(' · '))}</div>` : ''}${renderizarIndicadores([['Estado', caja ? 'Abierta' : 'Cerrada', caja ? `Caja #${caja.id}` : 'Sin caja abierta', '$'], ['Ingresos', guaranies(ingresos), 'Movimientos cargados', '↗'], ['Egresos', guaranies(egresos), 'Movimientos cargados', '↘'], ['Saldo actual', saldo, 'Caja abierta', '=']])}<section class="section-block">${cajaForm}</section>${reportes}${formasDePago}${egresoForm}<section class="section-block"><div class="section-heading"><div><h2>Movimientos recientes</h2><p>Ingresos y egresos registrados</p></div></div><div class="table-wrap"><table><thead><tr><th>Concepto</th><th>Responsable</th><th>Fecha</th><th>Medio</th><th>Monto</th></tr></thead><tbody>${filas}</tbody></table></div></section>${cajas}`;
+  return `${renderizarEncabezado('Caja', 'Gestiona la caja y registra cobros en guaraníes.')}${datos.errorConexion ? `<div class="notice notice-error">Algunos datos no se cargaron: ${escaparHtml(datos.errorRecursos.join(' · '))}</div>` : ''}${renderizarIndicadores([['Estado', caja ? 'Abierta' : 'Cerrada', caja ? `Caja #${caja.id}` : 'Sin caja abierta', '$'], ['Ingresos', guaranies(ingresos), 'Movimientos cargados', '↗'], ['Egresos', guaranies(egresos), 'Movimientos cargados', '↘'], ['Saldo actual', saldo, 'Caja abierta', '=']])}<section class="section-block">${cajaForm}${filtroReporte}</section>${reportes}${seccionCobrosPendientes}${formasDePago}${egresoForm}<section class="section-block"><div class="section-heading"><div><h2>Movimientos recientes</h2><p>Ingresos y egresos registrados</p></div></div><div class="table-wrap"><table><thead><tr><th>Concepto</th><th>Responsable</th><th>Fecha</th><th>Medio</th><th>Monto</th></tr></thead><tbody>${filas}</tbody></table></div></section>${cajas}`;
 }

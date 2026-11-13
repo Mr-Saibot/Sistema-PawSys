@@ -15,7 +15,7 @@ export class CreateConsultaDto {
 
   @IsNotEmpty({ message: 'El costo de la consulta es obligatorio' })
   @IsNumber()
-  @Min(0)
+  @Min(1, { message: 'El costo de la consulta debe ser mayor a cero' })
   costo: number;
 
   @IsNotEmpty({ message: 'El ID del historial clínico es obligatorio' })

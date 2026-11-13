@@ -11,7 +11,7 @@ export class CreateVacunacionDto {
 
   @IsNotEmpty({ message: 'El costo de la vacunación es obligatorio' })
   @IsNumber()
-  @Min(0)
+  @Min(1, { message: 'El costo de la vacunación debe ser mayor a cero' })
   costo: number;
 
   @IsNotEmpty({ message: 'El ID del historial clínico es obligatorio' })

@@ -40,6 +40,7 @@ La URL de API se puede cambiar en **Configuración de conexión** antes de inici
 - **Cliente:** alta y edición de mascotas propias, solicitud/cancelación/reprogramación de turnos, selección de veterinario disponible y consulta de instrucciones de pago.
 - **Veterinario:** consulta de pacientes y turnos, además de registro y mantenimiento de información clínica permitido por el backend.
 - **Administración:** gestión de clientes, mascotas, equipo, agendas, turnos, historias clínicas, consultas, vacunaciones y caja.
+- **Caja:** registro de cobros confirmados de consultas y vacunaciones, efectivo o transferencia/QR verificada; el importe proviene del costo de la atención y queda asociado a ella. También permite elegir el día para el reporte.
 - **Detalle de registros:** las pantallas con rutas de lectura por identificador permiten consultar el detalle desde el API.
 
 Las operaciones que la API no expone tampoco se simulan: ingresos y egresos se registran y consultan, pero no se editan ni eliminan desde la interfaz.
@@ -48,6 +49,6 @@ Las operaciones que la API no expone tampoco se simulan: ingresos y egresos se r
 
 El cliente HTTP adjunta el token JWT en solicitudes protegidas y presenta los errores del servidor en la pantalla. Los permisos no dependen de ocultar botones: el backend es la autoridad para cada operación. La sesión se guarda localmente en el navegador; cierra sesión en dispositivos compartidos.
 
-El QR, alias y titular se cargan desde la configuración pública de pagos del backend. La veterinaria debe proporcionar el QR real. El pago por transferencia se verifica manualmente fuera de PawSys antes de registrar el ingreso; no se procesan tarjetas ni se confirma una operación bancaria automáticamente.
+El QR, alias y titular se cargan desde la configuración pública de pagos del backend. La veterinaria debe proporcionar el QR real. El personal confirma el pago desde Caja solo después de recibir efectivo o verificar la transferencia; PawSys no procesa tarjetas ni confirma una operación bancaria automáticamente.
 
 Para acceso desde un celular, configura en el backend el origen LAN en CORS y coloca la URL LAN de la API en esta pantalla. Consulta la sección de red local en el [README principal](../README.md).

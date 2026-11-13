@@ -28,12 +28,14 @@ export class MascotasService {
       data: {
         ...createMascotaDto,
         clienteId,
+        historial: { create: {} },
         fechaNacimiento: createMascotaDto.fechaNacimiento
           ? new Date(createMascotaDto.fechaNacimiento)
           : null,
       },
       include: {
         cliente: true,
+        historial: true,
       },
     });
   }

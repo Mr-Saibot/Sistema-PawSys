@@ -9,7 +9,7 @@ Sistema de gestión para una clínica veterinaria. Reúne una API REST, una inte
 - **Turnos y agendas:** solicitud, consulta, cancelación y reprogramación de turnos, con veterinarios disponibles para seleccionar.
 - **Atención veterinaria:** historias clínicas, consultas y vacunaciones relacionadas con las mascotas.
 - **Administración:** gestión de clientes, veterinarios, administradores y agendas.
-- **Caja:** apertura/cierre y reporte diario, registro de ingresos y egresos.
+- **Caja:** apertura/cierre, reporte diario por fecha, registro de ingresos y egresos. Las consultas y vacunaciones se cobran explícitamente desde Caja una vez confirmado el pago.
 - **Pagos:** efectivo y transferencia/QR con instrucciones de la veterinaria. La transferencia se verifica manualmente; PawSys no procesa pagos ni confirma depósitos.
 
 ## Arquitectura
@@ -103,7 +103,7 @@ El QR solo muestra instrucciones. El personal debe confirmar la transferencia en
 
 ## Límites funcionales actuales
 
-- Ingresos y egresos se pueden registrar y consultar; no hay rutas de edición o eliminación para esos movimientos.
+- Ingresos y egresos se pueden registrar y consultar; no hay rutas de edición o eliminación para esos movimientos. Las atenciones cobradas conservan su importe y no se pueden eliminar.
 - La eliminación lógica de personas conserva la relación de sus registros históricos.
 - La disponibilidad de agenda y las operaciones permitidas dependen de las validaciones del backend.
 - No se incluye confirmación automática de transferencias, recuperación de contraseñas ni un proveedor de pagos.
@@ -111,3 +111,5 @@ El QR solo muestra instrucciones. El personal debe confirmar la transferencia en
 Para detalle de endpoints, configuración y responsabilidades del servidor, consulta [`backend/README.md`](./backend/README.md). Para pantallas, estructura y conexión, consulta [`frondend/README.md`](./frondend/README.md).
 
 Para recorrer manualmente los flujos de cliente, veterinario y administrador y comprobar todas las rutas de la API, consulta la [Guía de pruebas manuales](./GUIA-PRUEBAS-MANUALES.md).
+
+Para conocer la función de las carpetas y archivos del repositorio, consulta el [Reporte de estructura del proyecto](./REPORTE-ESTRUCTURA-PROYECTO.md).

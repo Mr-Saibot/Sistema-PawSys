@@ -44,24 +44,67 @@ export class CajaService {
     });
   }
 
-  async reporteDiario(id: number) {
-    const caja = await this.prisma.caja.findUnique({
-      where: { id },
-      include: { ingresos: true, egresos: true },
-    });
+  async reporteDiario(id: number, fechaSolicitada?: string) {
+    const fecha = fechaSolicitada ?? this.fechaActualParaguay();
+    const { inicio, fin } = this.rangoDelDiaParaguayo(fecha);
+    const caja = await this.prisma.caja.findUnique({ where: { id } });
     if (!caja) throw new NotFoundException(`Caja ${id} no encontrada`);
+    const [ingresos, egresos] = await Promise.all([
+      this.prisma.ingreso.findMany({
+        where: { cajaId: id, fecha: { gte: inicio, lt: fin } },
+        orderBy: { fecha: 'asc' },
+      }),
+      this.prisma.egreso.findMany({
+        where: { cajaId: id, fecha: { gte: inicio, lt: fin } },
+        orderBy: { fecha: 'asc' },
+      }),
+    ]);
 
     return {
       cajaId: caja.id,
       estado: caja.estado,
-      totalIngresos: caja.ingresos.reduce((acc, curr) => acc + Number(curr.monto), 0),
-      totalEgresos: caja.egresos.reduce((acc, curr) => acc + Number(curr.monto), 0),
-      ingresos: caja.ingresos,
-      egresos: caja.egresos,
+      fecha,
+      totalIngresos: ingresos.reduce((acc, curr) => acc + Number(curr.monto), 0),
+      totalEgresos: egresos.reduce((acc, curr) => acc + Number(curr.monto), 0),
+      ingresos,
+      egresos,
     };
   }
 
   listar() {
     return this.prisma.caja.findMany({ include: { ingresos: true, egresos: true, administrador: true } });
+  }
+
+  private fechaActualParaguay(): string {
+    const partes = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Asuncion',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const obtener = (tipo: string) => partes.find((parte) => parte.type === tipo)?.value;
+    return `${obtener('year')}-${obtener('month')}-${obtener('day')}`;
+  }
+
+  private rangoDelDiaParaguayo(fecha: string): { inicio: Date; fin: Date } {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      throw new BadRequestException('La fecha debe tener el formato YYYY-MM-DD y ser válida');
+    }
+    const inicio = new Date(`${fecha}T00:00:00-03:00`);
+    if (Number.isNaN(inicio.getTime())) {
+      throw new BadRequestException('La fecha debe tener el formato YYYY-MM-DD y ser válida');
+    }
+    const fechaParaguay = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Asuncion',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(inicio);
+    if (fechaParaguay !== fecha) {
+      throw new BadRequestException('La fecha debe tener el formato YYYY-MM-DD y ser válida');
+    }
+    const fin = new Date(inicio);
+    fin.setUTCDate(fin.getUTCDate() + 1);
+    return { inicio, fin };
   }
 }

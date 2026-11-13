@@ -11,10 +11,12 @@ export class EgresosService {
     if (!administrador) throw new NotFoundException('No existe un perfil de administrador para este usuario');
     return this.prisma.$transaction(async (transaction) => {
       const cajaAbierta = await transaction.caja.updateMany({
-        where: { id: dto.cajaId, estado: 'ABIERTA' },
+        where: { id: dto.cajaId, estado: 'ABIERTA', saldoActual: { gte: dto.monto } },
         data: { saldoActual: { decrement: dto.monto } },
       });
-      if (cajaAbierta.count !== 1) throw new BadRequestException('La caja no existe o está cerrada');
+      if (cajaAbierta.count !== 1) {
+        throw new BadRequestException('La caja está cerrada o el saldo disponible es insuficiente');
+      }
       return transaction.egreso.create({
         data: { ...dto, responsable: `${administrador.nombre} ${administrador.apellido}` },
       });

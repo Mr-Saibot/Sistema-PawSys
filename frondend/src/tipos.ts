@@ -78,6 +78,7 @@ export interface Caja {
 export interface ReporteCaja {
   cajaId: number;
   estado: string;
+  fecha: string;
   totalIngresos: number;
   totalEgresos: number;
   ingresos: Ingreso[];
@@ -153,6 +154,8 @@ export interface Consulta {
   tratamiento?: string | null;
   costo: number | string;
   historialId: number;
+  historial?: Pick<HistorialClinico, 'mascota'>;
+  ingreso?: Ingreso | null;
 }
 
 export interface Vacunacion {
@@ -162,6 +165,8 @@ export interface Vacunacion {
   proximaDosis?: string | null;
   costo: number | string;
   historialId: number;
+  historial?: Pick<HistorialClinico, 'mascota'>;
+  ingreso?: Ingreso | null;
 }
 
 export interface Agenda {

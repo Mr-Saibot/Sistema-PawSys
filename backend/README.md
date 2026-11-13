@@ -75,8 +75,8 @@ No se configura un prefijo global `/api`. Las rutas privadas requieren `Authoriz
 | Historias clínicas | `GET/POST /historiales-clinicos`, `GET/PATCH/DELETE /historiales-clinicos/:id`, `GET /historiales-clinicos/mascota/:mascotaId` |
 | Consultas | `GET/POST /consultas`, `GET/PATCH/DELETE /consultas/:id` |
 | Vacunaciones | `GET/POST /vacunaciones`, `GET/PATCH/DELETE /vacunaciones/:id` |
-| Caja | `GET /caja`, `POST /caja/abrir`, `POST /caja/:id/cerrar`, `GET /caja/:id/reporte-diario` |
-| Ingresos | `GET/POST /ingresos` |
+| Caja | `GET /caja`, `POST /caja/abrir`, `POST /caja/:id/cerrar`, `GET /caja/:id/reporte-diario?fecha=YYYY-MM-DD` |
+| Ingresos | `GET/POST /ingresos`, `POST /ingresos/consultas/:id`, `POST /ingresos/vacunaciones/:id` |
 | Egresos | `GET/POST /egresos` |
 | Pagos públicos | `GET /configuracion/pagos` |
 
@@ -91,8 +91,12 @@ Las rutas para perfiles (`POST /clientes`, `/veterinarios` y `/administradores`)
 - Administración gestiona la información general, el personal y las operaciones de caja.
 - Ingresos, egresos y acciones de caja son exclusivos de administración.
 - `GET /veterinarios/disponibles` devuelve datos mínimos para elegir un profesional. `GET /configuracion/pagos` devuelve instrucciones públicas, nunca secretos.
+- Al crear una mascota se crea también su historia clínica en la misma operación.
+- Registrar una consulta o vacunación no altera la caja. Administración registra el cobro confirmado mediante `POST /ingresos/consultas/:id` o `POST /ingresos/vacunaciones/:id`, enviando `{ "cajaId": 1, "formaPago": "EFECTIVO" }` o `TRANSFERENCIA_QR`. El monto se toma del costo clínico, se vincula al registro y no se puede cobrar dos veces.
+- Los reportes filtran movimientos por día calendario de Paraguay (`America/Asuncion`). Si se omite `fecha`, se usa el día actual; si se envía, debe respetar `YYYY-MM-DD`.
+- Los egresos se rechazan cuando la caja no está abierta o su saldo disponible no alcanza.
 
-Las bajas de personas desactivan la cuenta o conservan referencias históricas según el servicio. Los movimientos financieros no tienen operaciones de edición/borrado. Las escrituras de caja y movimientos relacionados usan transacciones para mantener coherentes los saldos.
+Las bajas de personas desactivan la cuenta o conservan referencias históricas según el servicio. Los movimientos financieros no tienen operaciones de edición/borrado. Una atención con cobro no se puede eliminar ni cambiar de costo, para conservar el registro contable. Las escrituras de caja y movimientos relacionados usan transacciones para mantener coherentes los saldos.
 
 ## Pruebas
 

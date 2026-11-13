@@ -199,6 +199,9 @@ export class ControladorApp {
     this.raiz.querySelector<HTMLFormElement>('#abrir-caja-form')?.addEventListener('submit', (evento) => void this.abrirCaja(evento));
     this.raiz.querySelector<HTMLFormElement>('#ingreso-form')?.addEventListener('submit', (evento) => void this.registrarIngreso(evento));
     this.raiz.querySelector<HTMLFormElement>('#egreso-form')?.addEventListener('submit', (evento) => void this.registrarEgreso(evento));
+    this.raiz.querySelectorAll<HTMLFormElement>('[data-cobro-atencion]').forEach((formulario) => {
+      formulario.addEventListener('submit', (evento) => void this.registrarCobroAtencion(evento, formulario));
+    });
     this.raiz.querySelector<HTMLFormElement>('#historial-form')?.addEventListener('submit', (evento) => void this.guardarHistoria(evento));
     this.raiz.querySelector<HTMLFormElement>('#consulta-form')?.addEventListener('submit', (evento) => void this.guardarRegistroClinico(evento, '/consultas'));
     this.raiz.querySelector<HTMLFormElement>('#vacunacion-form')?.addEventListener('submit', (evento) => void this.guardarRegistroClinico(evento, '/vacunaciones'));
@@ -453,10 +456,39 @@ export class ControladorApp {
   private async mostrarReporteCaja(id: number): Promise<void> {
     if (!this.sesion?.token || !Number.isInteger(id)) return;
     try {
-      this.reporteCaja = await enviarApi<ReporteCaja>(`/caja/${id}/reporte-diario`, this.sesion.token);
+      const fecha = this.raiz.querySelector<HTMLInputElement>('#fecha-reporte-caja')?.value;
+      const filtro = fecha ? `?fecha=${encodeURIComponent(fecha)}` : '';
+      this.reporteCaja = await enviarApi<ReporteCaja>(`/caja/${id}/reporte-diario${filtro}`, this.sesion.token);
       this.renderizarPanel();
     } catch (causa) {
       this.mostrarAviso(obtenerMensajeError(causa, 'No se pudo cargar el reporte de caja.'));
+    }
+  }
+
+  private async registrarCobroAtencion(evento: SubmitEvent, formulario: HTMLFormElement): Promise<void> {
+    evento.preventDefault();
+    const error = formulario.querySelector<HTMLElement>('.login-error');
+    const boton = formulario.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const caja = this.datos.cajas.find((item) => item.estado === 'ABIERTA');
+    const tipo = formulario.dataset.tipoAtencion;
+    const id = Number(formulario.dataset.idAtencion);
+    if (!error || !boton || !caja || !this.sesion?.token || !Number.isInteger(id)) return;
+    const ruta = tipo === 'consulta' ? 'consultas' : tipo === 'vacunacion' ? 'vacunaciones' : '';
+    if (!ruta) return;
+    const formaPago = new FormData(formulario).get('formaPago');
+    boton.disabled = true;
+    error.textContent = '';
+    try {
+      await enviarApi(`/ingresos/${ruta}/${id}`, this.sesion.token, 'POST', {
+        cajaId: caja.id,
+        formaPago,
+      });
+      await this.actualizarDatos();
+      this.renderizarPanel();
+      this.mostrarAviso('Cobro registrado y vinculado a la atención.');
+    } catch (causa) {
+      error.textContent = obtenerMensajeError(causa, 'No se pudo registrar el cobro.');
+      boton.disabled = false;
     }
   }
 

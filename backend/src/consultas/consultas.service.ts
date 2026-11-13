@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Rol } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
@@ -47,6 +47,7 @@ export class ConsultasService {
           include: { mascota: true },
         },
         veterinario: true,
+        ingreso: true,
       },
     });
   }
@@ -58,6 +59,7 @@ export class ConsultasService {
           include: { mascota: true },
         },
         veterinario: true,
+        ingreso: true,
       },
       orderBy: { id: 'desc' },
     });
@@ -71,6 +73,7 @@ export class ConsultasService {
           include: { mascota: true },
         },
         veterinario: true,
+        ingreso: true,
       },
     });
 
@@ -82,7 +85,11 @@ export class ConsultasService {
   }
 
   async update(id: number, updateConsultaDto: UpdateConsultaDto) {
-    await this.findOne(id);
+    const consulta = await this.findOne(id);
+    if (consulta.ingreso && updateConsultaDto.costo !== undefined
+      && Number(updateConsultaDto.costo) !== Number(consulta.costo)) {
+      throw new BadRequestException('No se puede cambiar el costo de una consulta ya cobrada');
+    }
 
     return this.prisma.consulta.update({
       where: { id },
@@ -96,7 +103,10 @@ export class ConsultasService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
+    const consulta = await this.findOne(id);
+    if (consulta.ingreso) {
+      throw new BadRequestException('No se puede eliminar una consulta con un cobro registrado');
+    }
 
     return this.prisma.consulta.delete({
       where: { id },

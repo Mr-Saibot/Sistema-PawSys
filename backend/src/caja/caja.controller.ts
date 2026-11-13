@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, ParseIntPipe, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, ParseIntPipe, UseGuards, Req, Query } from '@nestjs/common';
 import { Request } from 'express';
 import { Rol } from '@prisma/client';
 import { CajaService } from './caja.service';
@@ -28,8 +28,8 @@ export class CajaController {
   }
 
   @Get(':id/reporte-diario')
-  reporteDiario(@Param('id', ParseIntPipe) id: number) {
-    return this.service.reporteDiario(id);
+  reporteDiario(@Param('id', ParseIntPipe) id: number, @Query('fecha') fecha?: string) {
+    return this.service.reporteDiario(id, fecha);
   }
 
   @Get()

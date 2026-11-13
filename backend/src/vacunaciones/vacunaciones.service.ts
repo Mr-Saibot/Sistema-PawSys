@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Rol } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVacunacionDto } from './dto/create-vacunacione.dto';
@@ -46,6 +46,7 @@ export class VacunacionesService {
           include: { mascota: true },
         },
         veterinario: true,
+        ingreso: true,
       },
     });
   }
@@ -57,6 +58,7 @@ export class VacunacionesService {
           include: { mascota: true },
         },
         veterinario: true,
+        ingreso: true,
       },
       orderBy: { id: 'desc' },
     });
@@ -70,6 +72,7 @@ export class VacunacionesService {
           include: { mascota: true },
         },
         veterinario: true,
+        ingreso: true,
       },
     });
 
@@ -81,7 +84,11 @@ export class VacunacionesService {
   }
 
   async update(id: number, updateVacunacionDto: UpdateVacunacionDto) {
-    await this.findOne(id);
+    const vacunacion = await this.findOne(id);
+    if (vacunacion.ingreso && updateVacunacionDto.costo !== undefined
+      && Number(updateVacunacionDto.costo) !== Number(vacunacion.costo)) {
+      throw new BadRequestException('No se puede cambiar el costo de una vacunación ya cobrada');
+    }
 
     return this.prisma.vacunacion.update({
       where: { id },
@@ -94,7 +101,10 @@ export class VacunacionesService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
+    const vacunacion = await this.findOne(id);
+    if (vacunacion.ingreso) {
+      throw new BadRequestException('No se puede eliminar una vacunación con un cobro registrado');
+    }
 
     return this.prisma.vacunacion.delete({
       where: { id },
