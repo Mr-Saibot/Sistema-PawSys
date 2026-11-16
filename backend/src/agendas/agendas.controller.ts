@@ -1,42 +1,88 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { Request } from 'express';
+import { Rol } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 import { AgendasService } from './agendas.service';
 import { CreateAgendaDto, UpdateAgendaDto } from './dto/create-agenda.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
-import { Rol } from '@prisma/client';
+import { ReservarTurnoDto } from './dto/reservar-turno.dto';
+
+interface SolicitudAutenticada extends Request {
+  user: { id: number; rol: Rol };
+}
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Rol.VETERINARIO, Rol.ADMINISTRADOR)
+@Roles(Rol.CLIENTE, Rol.VETERINARIO, Rol.ADMINISTRADOR)
 @Controller('agendas')
 export class AgendasController {
   constructor(private readonly agendasService: AgendasService) {}
 
-  @Post()
-  @Roles(Rol.ADMINISTRADOR)
-  create(@Body() dto: CreateAgendaDto) {
-    return this.agendasService.create(dto);
+  @Get('disponibles')
+  disponibles() {
+    return this.agendasService.buscarDisponibles();
   }
 
   @Get()
-  findAll() {
-    return this.agendasService.findAll();
+  buscarTodos(@Req() solicitud: SolicitudAutenticada) {
+    return this.agendasService.buscarTodos(solicitud.user);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.agendasService.findOne(id);
+  @Roles(Rol.VETERINARIO, Rol.ADMINISTRADOR)
+  buscarUno(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() solicitud: SolicitudAutenticada,
+  ) {
+    return this.agendasService.buscarUno(id, solicitud.user);
+  }
+
+  @Post()
+  @Roles(Rol.VETERINARIO, Rol.ADMINISTRADOR)
+  crear(
+    @Body() dto: CreateAgendaDto,
+    @Req() solicitud: SolicitudAutenticada,
+  ) {
+    return this.agendasService.crear(dto, solicitud.user);
+  }
+
+  @Post(':id/reservar')
+  @Roles(Rol.CLIENTE)
+  reservar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ReservarTurnoDto,
+    @Req() solicitud: SolicitudAutenticada,
+  ) {
+    return this.agendasService.reservar(id, dto, solicitud.user);
   }
 
   @Patch(':id')
-  @Roles(Rol.ADMINISTRADOR)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateAgendaDto) {
-    return this.agendasService.update(id, dto);
+  @Roles(Rol.VETERINARIO, Rol.ADMINISTRADOR)
+  actualizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAgendaDto,
+    @Req() solicitud: SolicitudAutenticada,
+  ) {
+    return this.agendasService.actualizar(id, dto, solicitud.user);
   }
 
   @Delete(':id')
-  @Roles(Rol.ADMINISTRADOR)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.agendasService.remove(id);
+  @Roles(Rol.VETERINARIO, Rol.ADMINISTRADOR)
+  eliminar(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() solicitud: SolicitudAutenticada,
+  ) {
+    return this.agendasService.eliminar(id, solicitud.user);
   }
 }

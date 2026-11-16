@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "instalar": "npm --prefix backend install && npm --prefix frondend install",
+    "instalar": "npm --prefix backend install && npm --prefix frontend install",
     "preparar:base": "npm --prefix backend run preparar:base",
     "sincronizar:base": "npm --prefix backend run sincronizar:base",
-    "compilar": "npm --prefix backend run build && npm --prefix frondend run build",
+    "compilar": "npm --prefix backend run build && npm --prefix frontend run build",
     "iniciar": "node herramientas/iniciar-desarrollo.mjs"
   }
 }

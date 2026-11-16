@@ -1,5 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { Rol } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { IngresosService } from './ingresos.service';
 
@@ -13,6 +14,7 @@ describe('IngresosService', () => {
   };
   const prisma = {
     administrador: { findUnique: jest.fn() },
+    veterinario: { findUnique: jest.fn() },
     $transaction: jest.fn((callback: (tx: typeof transaction) => unknown) => callback(transaction)),
   };
 
@@ -34,9 +36,14 @@ describe('IngresosService', () => {
       costo: 150000,
       ingreso: null,
       historial: { mascota: { nombre: 'Luna' } },
+      veterinario: { usuarioId: 10 },
     });
 
-    await service.cobrarConsulta(3, { cajaId: 2, formaPago: 'EFECTIVO' }, 10);
+    await service.cobrarConsulta(
+      3,
+      { cajaId: 2, formaPago: 'EFECTIVO' },
+      { id: 10, rol: Rol.ADMINISTRADOR },
+    );
 
     expect(transaction.caja.updateMany).toHaveBeenCalledWith({
       where: { id: 2, estado: 'ABIERTA' },
@@ -60,9 +67,14 @@ describe('IngresosService', () => {
       costo: 85000,
       ingreso: null,
       historial: { mascota: { nombre: 'Luna' } },
+      veterinario: { usuarioId: 10 },
     });
 
-    await service.cobrarVacunacion(4, { cajaId: 2, formaPago: 'TRANSFERENCIA_QR' }, 10);
+    await service.cobrarVacunacion(
+      4,
+      { cajaId: 2, formaPago: 'TRANSFERENCIA_QR' },
+      { id: 10, rol: Rol.ADMINISTRADOR },
+    );
 
     expect(transaction.caja.updateMany).toHaveBeenCalledWith({
       where: { id: 2, estado: 'ABIERTA' },
@@ -83,11 +95,43 @@ describe('IngresosService', () => {
       id: 3,
       ingreso: { id: 5 },
       historial: { mascota: { nombre: 'Luna' } },
+      veterinario: { usuarioId: 10 },
     });
 
-    await expect(service.cobrarConsulta(3, { cajaId: 2, formaPago: 'EFECTIVO' }, 10))
+    await expect(
+      service.cobrarConsulta(
+        3,
+        { cajaId: 2, formaPago: 'EFECTIVO' },
+        { id: 10, rol: Rol.ADMINISTRADOR },
+      ),
+    )
       .rejects.toBeInstanceOf(ConflictException);
     expect(transaction.caja.updateMany).not.toHaveBeenCalled();
     expect(transaction.ingreso.create).not.toHaveBeenCalled();
+  });
+
+  it('lets a veterinarian charge only their own clinical attention', async () => {
+    prisma.veterinario.findUnique.mockResolvedValue({
+      nombre: 'Luis',
+      apellido: 'Pérez',
+    });
+    transaction.consulta.findUnique.mockResolvedValue({
+      id: 3,
+      motivo: 'Control',
+      costo: 150000,
+      ingreso: null,
+      historial: { mascota: { nombre: 'Luna' } },
+      veterinario: { usuarioId: 12 },
+    });
+
+    await expect(
+      service.cobrarConsulta(
+        3,
+        { cajaId: 2, formaPago: 'EFECTIVO' },
+        { id: 10, rol: Rol.VETERINARIO },
+      ),
+    ).rejects.toThrow('Solo puedes cobrar atenciones que realizaste.');
+
+    expect(transaction.caja.updateMany).not.toHaveBeenCalled();
   });
 });

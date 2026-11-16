@@ -6,10 +6,10 @@ Sistema de gestión para una clínica veterinaria. Reúne una API REST, una inte
 
 - **Cuentas y perfiles:** acceso con correo y contraseña, registro público de clientes y creación de personal por administración.
 - **Mascotas:** datos del paciente, responsable, especie, peso, fecha de nacimiento y observaciones.
-- **Turnos y agendas:** solicitud, consulta, cancelación y reprogramación de turnos, con veterinarios disponibles para seleccionar.
+- **Turnos y agendas:** disponibilidad semanal publicada por veterinarios, reserva de horarios de 30 o 60 minutos, cancelación y confirmación de asistencia por correo.
 - **Atención veterinaria:** historias clínicas, consultas y vacunaciones relacionadas con las mascotas.
 - **Administración:** gestión de clientes, veterinarios, administradores y agendas.
-- **Caja:** apertura/cierre, reporte diario por fecha, registro de ingresos y egresos. Las consultas y vacunaciones se cobran explícitamente desde Caja una vez confirmado el pago.
+- **Caja:** apertura/cierre, reporte diario por fecha, registro de ingresos y egresos. El veterinario registra el cobro de sus atenciones en la caja abierta.
 - **Pagos:** efectivo y transferencia/QR con instrucciones de la veterinaria. La transferencia se verifica manualmente; PawSys no procesa pagos ni confirma depósitos.
 
 ## Arquitectura
@@ -18,10 +18,14 @@ Sistema de gestión para una clínica veterinaria. Reúne una API REST, una inte
 |---|---|---|
 | API y reglas de negocio | NestJS, TypeScript, JWT y Prisma | [`backend/`](./backend/README.md) |
 | Persistencia | MySQL, con modelos descritos en Prisma | `backend/schema.prisma` |
-| Interfaz responsive | HTML, CSS y TypeScript compilado | [`frondend/`](./frondend/README.md) |
+| Interfaz responsive | React, TypeScript, Tailwind y Vite | [`frontend/`](./frontend/README.md) |
 | Inicio local conjunto | Node.js | `herramientas/iniciar-desarrollo.mjs` |
 
 El frontend consume la API REST mediante `fetch`. Las rutas protegidas requieren un token JWT y el backend aplica la validación y autorización por rol. La interfaz no reemplaza esos controles.
+
+La aplicación principal se encuentra en `http://localhost:5500`. La ficha
+también puede abrirse directamente en
+`http://localhost:5500/ficha.html#/pacientes/:id`.
 
 ## Requisitos
 
@@ -76,9 +80,9 @@ El último comando configura la ejecución de Jest en el entorno ESM usado por l
 
 ## Uso y roles
 
-- **Cliente:** se registra desde la pantalla de acceso; gestiona sus mascotas, solicita y administra sus turnos, y consulta instrucciones de pago.
-- **Veterinario:** consulta pacientes y agenda asignada, y registra información clínica.
-- **Administrador:** gestiona datos generales, personal, agendas, turnos y caja.
+- **Cliente:** se registra desde la pantalla de acceso; gestiona sus mascotas, carga sus fotos, consulta el historial clínico y reserva horarios publicados.
+- **Veterinario:** consulta sus pacientes y agenda, publica horarios, registra información clínica y cobra sus propias atenciones.
+- **Administrador:** gestiona datos generales, personal, agendas, turnos y caja. Sus acciones de modificación requieren un PIN personal.
 
 El registro abierto crea cuentas de cliente, no de personal. Las cuentas de veterinarios y administradores las crea un administrador autenticado. La provisión del primer administrador es una operación inicial de la instalación y no existe un registro público para ese rol.
 
@@ -95,11 +99,25 @@ No expongas estos puertos directamente a Internet.
 
 Para mostrar los datos reales de la veterinaria:
 
-1. Coloca la imagen QR proporcionada por el banco en `frondend/qr-veterinaria.png` (o utiliza una URL pública accesible).
+1. Coloca la imagen QR proporcionada por el banco en una ubicación accesible
+   para el frontend (o utiliza una URL pública).
 2. Configura `PAYMENT_QR_IMAGE_URL`, `PAYMENT_ALIAS` y `PAYMENT_HOLDER` en `backend/.env`.
 3. Reinicia la API y verifica la información en **Pagos** o **Caja**.
 
 El QR solo muestra instrucciones. El personal debe confirmar la transferencia en la cuenta bancaria antes de registrarla como ingreso. PawSys no almacena datos de tarjetas ni ofrece una pasarela de pago.
+
+## Recordatorios y PIN administrativo
+
+Los recordatorios por correo se activan al configurar las variables `SMTP_*` y
+`FRONTEND_PUBLIC_URL` en `backend/.env`, tomando como referencia
+`backend/.env.example`. El administrador configura su propio PIN al confirmar
+la primera modificación protegida. El PIN se guarda como hash y no existe un
+PIN predeterminado. Desde el frontend, el formulario solicita la contraseña
+actual de la cuenta y permite crear el PIN en ese momento. Debe contener
+exactamente 6 dígitos numéricos (0 al 9), sin letras, espacios ni símbolos;
+también hay que repetirlo para confirmarlo. Luego se solicita para cada
+modificación administrativa. Después de 5 intentos incorrectos, el acceso se
+bloquea durante 15 minutos.
 
 ## Límites funcionales actuales
 
@@ -108,7 +126,9 @@ El QR solo muestra instrucciones. El personal debe confirmar la transferencia en
 - La disponibilidad de agenda y las operaciones permitidas dependen de las validaciones del backend.
 - No se incluye confirmación automática de transferencias, recuperación de contraseñas ni un proveedor de pagos.
 
-Para detalle de endpoints, configuración y responsabilidades del servidor, consulta [`backend/README.md`](./backend/README.md). Para pantallas, estructura y conexión, consulta [`frondend/README.md`](./frondend/README.md).
+Para detalle de endpoints, configuración y responsabilidades del servidor,
+consulta [`backend/README.md`](./backend/README.md). Para pantallas,
+estructura y conexión, consulta [`frontend/README.md`](./frontend/README.md).
 
 Para recorrer manualmente los flujos de cliente, veterinario y administrador y comprobar todas las rutas de la API, consulta la [Guía de pruebas manuales](./GUIA-PRUEBAS-MANUALES.md).
 

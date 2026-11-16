@@ -24,8 +24,8 @@ export class ConsultasController {
   }
 
   @Get()
-  findAll() {
-    return this.consultasService.findAll();
+  findAll(@Req() req: AuthenticatedRequest) {
+    return this.consultasService.findAll(req.user);
   }
 
   @Get(':id')

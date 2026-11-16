@@ -1,8 +1,15 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 import { CreateStaffDto } from './dto/create-staff.dto';
+import { ConfigurarPinDto } from './dto/configurar-pin.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -162,5 +169,77 @@ export class AuthService {
         fechaCreacion: usuario.fechaCreacion,
       };
     });
+  }
+
+  async obtenerEstadoPin(usuarioId: number) {
+    const administrador = await this.prisma.administrador.findUnique({
+      where: { usuarioId },
+      select: { pinHash: true },
+    });
+    if (!administrador) {
+      throw new NotFoundException('No existe un perfil de administrador.');
+    }
+
+    return { configurado: Boolean(administrador.pinHash) };
+  }
+
+  async configurarPin(usuarioId: number, dto: ConfigurarPinDto) {
+    const administrador = await this.prisma.administrador.findUnique({
+      where: { usuarioId },
+      include: { usuario: true },
+    });
+    if (!administrador) {
+      throw new NotFoundException('No existe un perfil de administrador.');
+    }
+
+    await this.validarClaveAdministrador(dto.password, administrador.usuario.passwordHash);
+    await this.validarPinActual(administrador.pinHash, dto.pinActual);
+    const pinHash = await bcrypt.hash(dto.pinNuevo, 10);
+
+    await this.prisma.administrador.update({
+      where: { id: administrador.id },
+      data: { pinHash },
+    });
+
+    return { configurado: true };
+  }
+
+  async verificarPin(usuarioId: number, pin: string): Promise<boolean> {
+    const administrador = await this.prisma.administrador.findUnique({
+      where: { usuarioId },
+      select: { pinHash: true },
+    });
+    if (!administrador) {
+      throw new ForbiddenException('No existe un perfil de administrador.');
+    }
+    if (!administrador.pinHash) {
+      throw new ForbiddenException(
+        'Configura tu PIN de administrador antes de modificar registros.',
+      );
+    }
+
+    return bcrypt.compare(pin, administrador.pinHash);
+  }
+
+  private async validarClaveAdministrador(
+    clave: string,
+    claveHash: string,
+  ): Promise<void> {
+    const valida = await bcrypt.compare(clave, claveHash);
+    if (!valida) {
+      throw new UnauthorizedException('La contraseña actual no es correcta.');
+    }
+  }
+
+  private async validarPinActual(
+    pinHash: string | null,
+    pinActual?: string,
+  ): Promise<void> {
+    if (!pinHash) {
+      return;
+    }
+    if (!pinActual || !(await bcrypt.compare(pinActual, pinHash))) {
+      throw new UnauthorizedException('El PIN actual no es correcto.');
+    }
   }
 }

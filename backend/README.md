@@ -31,6 +31,9 @@ Se necesita Node.js, npm y MySQL. Crea `backend/.env` a partir de `.env.example`
 | `PAYMENT_ALIAS` | Alias de transferencia que se mostrará en la interfaz |
 | `PAYMENT_HOLDER` | Titular de la cuenta receptora |
 | `PAYMENT_QR_IMAGE_URL` | URL o ruta pública de la imagen QR |
+| `FRONTEND_PUBLIC_URL` | URL pública usada en los enlaces de confirmación |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` | Servidor de correo para recordatorios |
+| `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Credenciales y remitente del correo |
 
 No subas `.env` al repositorio ni uses el secreto de ejemplo. La configuración de pagos no debe incluir credenciales bancarias privadas.
 
@@ -70,8 +73,8 @@ No se configura un prefijo global `/api`. Las rutas privadas requieren `Authoriz
 | Veterinarios | `GET/POST /veterinarios`, `GET/PATCH/DELETE /veterinarios/:id`, `GET /veterinarios/disponibles` |
 | Administradores | `GET/POST /administradores`, `GET/PATCH/DELETE /administradores/:id` |
 | Mascotas | `GET/POST /mascotas`, `GET/PATCH/DELETE /mascotas/:id` |
-| Agendas | `GET/POST /agendas`, `GET/PATCH/DELETE /agendas/:id` |
-| Turnos | `GET/POST /turnos`, `GET/PATCH/DELETE /turnos/:id`, `PATCH /turnos/:id/cancelar`, `PATCH /turnos/:id/reprogramar` |
+| Agendas | `GET /agendas`, `GET /agendas/disponibles`, `POST /agendas`, `POST /agendas/:id/reservar`, `GET/PATCH/DELETE /agendas/:id` |
+| Turnos | `GET/POST /turnos`, `GET/PATCH/DELETE /turnos/:id`, `PATCH /turnos/:id/cancelar`, `POST /turnos/confirmar` |
 | Historias clínicas | `GET/POST /historiales-clinicos`, `GET/PATCH/DELETE /historiales-clinicos/:id`, `GET /historiales-clinicos/mascota/:mascotaId` |
 | Consultas | `GET/POST /consultas`, `GET/PATCH/DELETE /consultas/:id` |
 | Vacunaciones | `GET/POST /vacunaciones`, `GET/PATCH/DELETE /vacunaciones/:id` |
@@ -89,10 +92,18 @@ Las rutas para perfiles (`POST /clientes`, `/veterinarios` y `/administradores`)
 - Clientes acceden a sus mascotas y turnos, no a los datos generales de otros clientes.
 - Veterinarios trabajan con las atenciones y turnos que les corresponden según las reglas del servicio.
 - Administración gestiona la información general, el personal y las operaciones de caja.
-- Ingresos, egresos y acciones de caja son exclusivos de administración.
+- Solo administración abre o cierra la caja y registra ingresos o egresos generales.
+- Veterinarios cobran sus propias consultas y vacunaciones en la caja abierta.
+- Las modificaciones administrativas solicitan el PIN personal del administrador.
 - `GET /veterinarios/disponibles` devuelve datos mínimos para elegir un profesional. `GET /configuracion/pagos` devuelve instrucciones públicas, nunca secretos.
+- Los clientes reservan horarios publicados por el equipo veterinario y pueden cancelar una reserva; el horario queda disponible nuevamente.
+- La confirmación de asistencia se realiza con un enlace firmado enviado 24 horas antes. El correo necesita SMTP; sin esa configuración, no se envían recordatorios.
+- `POST /mascotas/:id/foto` permite que un cliente actualice la foto de una mascota propia. Se aceptan JPG, PNG y WebP hasta 3 MB.
 - Al crear una mascota se crea también su historia clínica en la misma operación.
-- Registrar una consulta o vacunación no altera la caja. Administración registra el cobro confirmado mediante `POST /ingresos/consultas/:id` o `POST /ingresos/vacunaciones/:id`, enviando `{ "cajaId": 1, "formaPago": "EFECTIVO" }` o `TRANSFERENCIA_QR`. El monto se toma del costo clínico, se vincula al registro y no se puede cobrar dos veces.
+- `GET /mascotas/:id` valida la propiedad del cliente y devuelve la historia
+  con consultas, vacunaciones y datos mínimos de contacto del responsable.
+  No incluye documento de identidad ni dirección.
+- Registrar una consulta o vacunación no altera la caja. El veterinario responsable o administración registra el pago confirmado mediante `POST /ingresos/consultas/:id` o `POST /ingresos/vacunaciones/:id`, enviando `{ "cajaId": 1, "formaPago": "EFECTIVO" }` o `TRANSFERENCIA_QR`. El monto se toma del costo clínico, se vincula al registro y no se puede cobrar dos veces.
 - Los reportes filtran movimientos por día calendario de Paraguay (`America/Asuncion`). Si se omite `fecha`, se usa el día actual; si se envía, debe respetar `YYYY-MM-DD`.
 - Los egresos se rechazan cuando la caja no está abierta o su saldo disponible no alcanza.
 

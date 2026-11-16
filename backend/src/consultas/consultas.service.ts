@@ -52,8 +52,13 @@ export class ConsultasService {
     });
   }
 
-  async findAll() {
+  async findAll(usuario: { id: number; rol: Rol }) {
+    const where = usuario.rol === Rol.VETERINARIO
+      ? { veterinario: { usuarioId: usuario.id } }
+      : undefined;
+
     return this.prisma.consulta.findMany({
+      where,
       include: {
         historial: {
           include: { mascota: true },

@@ -1,13 +1,24 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Rol } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTurnoDto, UpdateTurnoDto } from './dto/create-turno.dto';
+import { fechaHoraAgendaEsFutura } from '../agendas/agendas.utilidades';
 
 @Injectable()
 export class TurnosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
+  ) {}
 
   async create(dto: CreateTurnoDto, usuario: { id: number; rol: Rol }) {
+    if (usuario.rol === Rol.CLIENTE) {
+      throw new BadRequestException(
+        'Selecciona un horario disponible de la agenda para reservar.',
+      );
+    }
+
     let veterinarioId = dto.veterinarioId;
     const mascota = await this.prisma.mascota.findUnique({
       where: { id: dto.mascotaId },
@@ -15,9 +26,6 @@ export class TurnosService {
     });
     if (!mascota) throw new NotFoundException(`La mascota con ID ${dto.mascotaId} no existe`);
     if (!mascota.estado) throw new BadRequestException('No se puede reservar un turno para una mascota inactiva');
-    if (usuario.rol === Rol.CLIENTE && mascota.cliente.usuarioId !== usuario.id) {
-      throw new ForbiddenException('Solo puedes solicitar turnos para tus mascotas');
-    }
     if (usuario.rol === Rol.VETERINARIO) {
       const veterinario = await this.prisma.veterinario.findUnique({ where: { usuarioId: usuario.id } });
       if (!veterinario) throw new NotFoundException('No existe un perfil veterinario para este usuario');
@@ -40,7 +48,6 @@ export class TurnosService {
         motivo: dto.motivo,
         mascotaId: dto.mascotaId,
         veterinarioId,
-        agendaId: dto.agendaId,
       },
       include: { mascota: true, veterinario: true },
     });
@@ -111,8 +118,9 @@ export class TurnosService {
         ...(dto.hora && { hora: dto.hora }),
         ...(dto.mascotaId && { mascotaId: dto.mascotaId }),
         ...(dto.veterinarioId && { veterinarioId: dto.veterinarioId }),
-        ...(dto.agendaId && { agendaId: dto.agendaId }),
         ...(dto.motivo !== undefined && { motivo: dto.motivo }),
+        ...((dto.fecha || dto.hora) && { agendaId: null }),
+        ...((dto.fecha || dto.hora) && { recordatorioEnviado: false }),
       },
       include: { mascota: true, veterinario: true },
     });
@@ -123,7 +131,32 @@ export class TurnosService {
     if (turno.estado === 'CANCELADO') throw new BadRequestException('El turno ya está cancelado');
     return this.prisma.turno.update({
       where: { id },
-      data: { estado: 'CANCELADO' },
+      data: { estado: 'CANCELADO', agendaId: null },
+    });
+  }
+
+  async confirmarAsistencia(token: string) {
+    const turnoId = await this.obtenerTurnoDelToken(token);
+    const turno = await this.prisma.turno.findUnique({
+      where: { id: turnoId },
+    });
+
+    if (!turno) {
+      throw new NotFoundException('El turno de este enlace no existe.');
+    }
+    if (turno.estado === 'CANCELADO') {
+      throw new BadRequestException('Este turno fue cancelado.');
+    }
+    if (turno.estado === 'CONFIRMADO') {
+      return turno;
+    }
+    if (!fechaHoraAgendaEsFutura(turno.fecha, turno.hora)) {
+      throw new BadRequestException('Este turno ya pasó.');
+    }
+
+    return this.prisma.turno.update({
+      where: { id: turno.id },
+      data: { estado: 'CONFIRMADO' },
     });
   }
 
@@ -143,6 +176,8 @@ export class TurnosService {
         fecha,
         hora: nuevaHora,
         estado: 'PENDIENTE',
+        agendaId: null,
+        recordatorioEnviado: false,
       },
     });
   }
@@ -160,6 +195,26 @@ export class TurnosService {
     }
     if (usuario.rol === Rol.VETERINARIO && turno.veterinario.usuarioId !== usuario.id) {
       throw new ForbiddenException('No tienes permiso para acceder a este turno');
+    }
+  }
+
+  private async obtenerTurnoDelToken(token: string): Promise<number> {
+    try {
+      const payload = await this.jwt.verifyAsync<{
+        sub: number;
+        tipo: string;
+      }>(token);
+      if (payload.tipo !== 'confirmacion-turno' || !Number.isInteger(payload.sub)) {
+        throw new BadRequestException('El enlace de confirmación no es válido.');
+      }
+      return payload.sub;
+    } catch (causa) {
+      if (causa instanceof BadRequestException) {
+        throw causa;
+      }
+      throw new BadRequestException(
+        'El enlace de confirmación venció o no es válido.',
+      );
     }
   }
 }

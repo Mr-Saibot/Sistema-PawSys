@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, Req } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { Request } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Rol } from '@prisma/client';
 import { MascotasService } from './mascotas.service';
 import { CreateMascotaDto } from './dto/create-mascota.dto';
@@ -7,6 +22,12 @@ import { UpdateMascotaDto } from './dto/update-mascota.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { MAX_TAMANO_FOTO_BYTES } from './mascotas.constantes';
+
+interface ArchivoFoto {
+  buffer: Buffer;
+  mimetype: string;
+}
 
 interface AuthenticatedRequest extends Request {
   user: { id: number; rol: Rol };
@@ -31,6 +52,23 @@ export class MascotasController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
     return this.mascotasService.findOne(id, req.user);
+  }
+
+  @Post(':id/foto')
+  @Roles(Rol.CLIENTE)
+  @UseInterceptors(FileInterceptor('foto', {
+    limits: { fileSize: MAX_TAMANO_FOTO_BYTES },
+  }))
+  subirFoto(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() archivo: ArchivoFoto | undefined,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    if (!archivo) {
+      throw new BadRequestException('Selecciona una imagen de tu mascota.');
+    }
+
+    return this.mascotasService.guardarFoto(id, archivo, req.user);
   }
 
   @Patch(':id')

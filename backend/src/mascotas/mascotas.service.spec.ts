@@ -7,7 +7,10 @@ describe('MascotasService', () => {
   let service: MascotasService;
   const prisma = {
     cliente: { findUnique: jest.fn() },
-    mascota: { create: jest.fn() },
+    mascota: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -34,5 +37,46 @@ describe('MascotasService', () => {
       }),
       include: { cliente: true, historial: true },
     }));
+  });
+
+  it('includes the clinical timeline and only necessary owner contact data', async () => {
+    prisma.mascota.findUnique.mockResolvedValue({
+      id: 5,
+      nombre: 'Luna',
+      cliente: {
+        id: 2,
+        nombre: 'Ana',
+        apellido: 'Gómez',
+        correo: 'ana@example.test',
+        telefono: '0981000000',
+        usuarioId: 10,
+      },
+      historial: {
+        consultas: [{ id: 3, motivo: 'Control' }],
+        vacunaciones: [{ id: 4, vacuna: 'Antirrábica' }],
+      },
+    });
+
+    const resultado = await service.findOne(5, { id: 10, rol: Rol.CLIENTE });
+
+    expect(prisma.mascota.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          historial: {
+            include: expect.objectContaining({
+              consultas: expect.any(Object),
+              vacunaciones: expect.any(Object),
+            }),
+          },
+        }),
+      }),
+    );
+    expect(resultado.cliente).toEqual({
+      id: 2,
+      nombre: 'Ana',
+      apellido: 'Gómez',
+      correo: 'ana@example.test',
+      telefono: '0981000000',
+    });
   });
 });

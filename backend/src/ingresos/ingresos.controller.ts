@@ -9,7 +9,7 @@ import { Roles } from '../auth/roles.decorator';
 import { Rol } from '@prisma/client';
 
 interface AuthenticatedRequest extends Request {
-  user: { id: number };
+  user: { id: number; rol: Rol };
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -24,21 +24,23 @@ export class IngresosController {
   }
 
   @Post('consultas/:id')
+  @Roles(Rol.ADMINISTRADOR, Rol.VETERINARIO)
   cobrarConsulta(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateCobroAtencionDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.ingresosService.cobrarConsulta(id, dto, req.user.id);
+    return this.ingresosService.cobrarConsulta(id, dto, req.user);
   }
 
   @Post('vacunaciones/:id')
+  @Roles(Rol.ADMINISTRADOR, Rol.VETERINARIO)
   cobrarVacunacion(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CreateCobroAtencionDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.ingresosService.cobrarVacunacion(id, dto, req.user.id);
+    return this.ingresosService.cobrarVacunacion(id, dto, req.user);
   }
 
   @Get()

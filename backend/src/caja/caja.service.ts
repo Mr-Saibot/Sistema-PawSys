@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Rol } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCajaDto } from './dto/create-caja.dto';
 
@@ -71,7 +72,20 @@ export class CajaService {
     };
   }
 
-  listar() {
+  listar(rol: Rol) {
+    if (rol === Rol.VETERINARIO) {
+      return this.prisma.caja.findMany({
+        where: { estado: 'ABIERTA' },
+        select: {
+          id: true,
+          saldoInicial: true,
+          saldoActual: true,
+          estado: true,
+          fechaApertura: true,
+        },
+      });
+    }
+
     return this.prisma.caja.findMany({ include: { ingresos: true, egresos: true, administrador: true } });
   }
 

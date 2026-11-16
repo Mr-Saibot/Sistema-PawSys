@@ -51,8 +51,13 @@ export class VacunacionesService {
     });
   }
 
-  async findAll() {
+  async findAll(usuario: { id: number; rol: Rol }) {
+    const where = usuario.rol === Rol.VETERINARIO
+      ? { veterinario: { usuarioId: usuario.id } }
+      : undefined;
+
     return this.prisma.vacunacion.findMany({
+      where,
       include: {
         historial: {
           include: { mascota: true },

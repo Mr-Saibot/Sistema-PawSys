@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "Bundler",
+    "rootDir": "src",
+    "outDir": "public/legacy-dist",
+    "strict": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/aplicacion", "src/main.tsx"]
+}

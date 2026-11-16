@@ -17,11 +17,6 @@ export class CreateTurnoDto {
   veterinarioId: number;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  agendaId?: number;
-
-  @IsOptional()
   @IsString()
   motivo?: string;
 }

@@ -33,8 +33,9 @@ export class CajaController {
   }
 
   @Get()
-  listar() {
-    return this.service.listar();
+  @Roles(Rol.ADMINISTRADOR, Rol.VETERINARIO)
+  listar(@Req() req: AuthenticatedRequest) {
+    return this.service.listar(req.user.rol);
   }
 }
 

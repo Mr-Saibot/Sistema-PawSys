@@ -18,6 +18,7 @@ export class TurnosController {
   constructor(private readonly turnosService: TurnosService) {}
 
   @Post()
+  @Roles(Rol.VETERINARIO, Rol.ADMINISTRADOR)
   create(@Body() dto: CreateTurnoDto, @Req() req: AuthenticatedRequest) {
     return this.turnosService.create(dto, req.user);
   }
@@ -44,6 +45,7 @@ export class TurnosController {
   }
 
   @Patch(':id/reprogramar')
+  @Roles(Rol.VETERINARIO, Rol.ADMINISTRADOR)
   reprogramar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ReprogramarTurnoDto,

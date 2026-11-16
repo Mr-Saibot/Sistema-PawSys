@@ -1,0 +1,29 @@
+{
+  "name": "pawsys-frond",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:legacy": "tsc -p tsconfig.legacy.json",
+    "build": "node scripts/compilar.mjs",
+    "watch": "tsc -w -p tsconfig.legacy.json",
+    "prestart": "npm run build:legacy",
+    "start": "vite --host 0.0.0.0 --port 5500"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "autoprefixer": "^10.6.2",
+    "postcss": "^8.5.33",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.8"
+  },
+  "dependencies": {
+    "lucide-react": "^1.73.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^6.30.6"
+  }
+}

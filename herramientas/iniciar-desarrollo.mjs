@@ -11,7 +11,7 @@ const procesos = [
   }),
   spawn('npm', ['start'], {
     ...opcionesProceso,
-    cwd: resolve(raiz, 'frondend'),
+    cwd: resolve(raiz, 'frontend'),
   }),
 ];
 

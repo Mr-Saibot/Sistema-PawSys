@@ -8,6 +8,10 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { Rol } from '@prisma/client';
 
+interface AuthenticatedRequest extends Request {
+  user: { id: number; rol: Rol };
+}
+
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Rol.VETERINARIO, Rol.ADMINISTRADOR)
 @Controller('vacunaciones')
@@ -20,8 +24,8 @@ export class VacunacionesController {
   }
 
   @Get()
-  findAll() {
-    return this.vacunacionesService.findAll();
+  findAll(@Req() req: AuthenticatedRequest) {
+    return this.vacunacionesService.findAll(req.user);
   }
 
   @Get(':id')

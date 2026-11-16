@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsuariosController } from './usuarios.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { RolesGuard } from './roles.guard';
 
 function jwtSecret(): string {
   const secret = process.env.JWT_SECRET;
@@ -23,7 +24,7 @@ function jwtSecret(): string {
     }),
   ],
   controllers: [AuthController, UsuariosController],
-  providers: [AuthService, JwtStrategy],
-  exports: [JwtStrategy, PassportModule, JwtModule],
+  providers: [AuthService, JwtStrategy, RolesGuard],
+  exports: [AuthService, JwtStrategy, PassportModule, JwtModule, RolesGuard],
 })
 export class AuthModule {}

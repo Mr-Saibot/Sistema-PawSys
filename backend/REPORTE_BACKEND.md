@@ -1,6 +1,6 @@
 # PawSys: estado de la integración
 
-Revisión del código actual: API NestJS/TypeScript con Prisma/MySQL y cliente web independiente en `frondend`. Las compilaciones comprueban tipos y construcción, pero no sustituyen una prueba de integración contra una base MySQL con datos.
+Revisión del código actual: API NestJS/TypeScript con Prisma/MySQL y cliente web React/TypeScript en `frontend`. Las compilaciones comprueban tipos y construcción, pero no sustituyen una prueba de integración contra una base MySQL con datos.
 
 ## Capacidades conectadas
 
