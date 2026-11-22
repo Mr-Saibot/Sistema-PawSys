@@ -5,8 +5,11 @@ import type { ConfiguracionPagos } from '../../tipos';
 import { EncabezadoModulo } from '../componentes/EncabezadoModulo';
 import { EstadoVacio } from '../componentes/EstadoVacio';
 import { Tarjeta } from '../componentes/Tarjeta';
+import { usePanelClinica } from '../contextos/ContextoPanelClinica';
+import { formatearGuaranies } from '../utilidades/formato-clinica';
 
 export function PaginaPagos() {
+  const { datos, sesion } = usePanelClinica();
   const [configuracion, establecerConfiguracion] =
     useState<ConfiguracionPagos | null>(null);
   const [cargando, establecerCargando] = useState(true);
@@ -104,8 +107,51 @@ export function PaginaPagos() {
           </p>
         </Tarjeta>
       </div>
+      {sesion.usuario.rol === 'CLIENTE' && (
+        <Tarjeta className="mt-5 p-5 sm:p-7">
+          <h2 className="font-semibold">Servicios pagados</h2>
+          <p className="mt-1 text-sm text-texto-suave">
+            Consultá el detalle de tus consultas y vacunaciones cobradas.
+          </p>
+          {datos.ingresos.length
+            ? <ul className="mt-4 divide-y divide-borde">
+              {datos.ingresos.map((ingreso) => (
+                <li className="grid gap-1 py-3 sm:grid-cols-[1fr_auto]" key={ingreso.id}>
+                  <div>
+                    <strong>{nombreServicio(ingreso)}</strong>
+                    <p className="text-sm text-texto-suave">
+                      {new Date(ingreso.fecha).toLocaleDateString('es-PY')}
+                      {' · '}{textoFormaPago(ingreso.formaPago)}
+                    </p>
+                  </div>
+                  <strong>{formatearGuaranies(ingreso.monto)}</strong>
+                </li>
+              ))}
+            </ul>
+            : <p className="mt-4 text-sm text-texto-suave">
+              Todavía no tenés servicios pagados registrados.
+            </p>}
+        </Tarjeta>
+      )}
     </div>
   );
+}
+
+function nombreServicio(ingreso: import('../../tipos').Ingreso): string {
+  if (ingreso.consulta) {
+    return `Consulta: ${ingreso.consulta.motivo}`;
+  }
+  if (ingreso.vacunacion) {
+    return `Vacunación: ${ingreso.vacunacion.vacuna}`;
+  }
+  return ingreso.concepto;
+}
+
+function textoFormaPago(formaPago: string): string {
+  if (formaPago === 'TRANSFERENCIA_QR') {
+    return 'Transferencia / QR';
+  }
+  return 'Efectivo';
 }
 
 function construirUrlQr(url?: string): string {

@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { UsuariosController } from './usuarios.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { RolesGuard } from './roles.guard';
+import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 
 function jwtSecret(): string {
   const secret = process.env.JWT_SECRET;
@@ -17,6 +18,7 @@ function jwtSecret(): string {
 
 @Module({
   imports: [
+    NotificacionesModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret: jwtSecret(),

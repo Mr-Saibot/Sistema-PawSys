@@ -5,6 +5,7 @@ import { ConfirmarTurno } from './paginas/ConfirmarTurno';
 import { FichaPaciente } from './paginas/FichaPaciente';
 import { InicioClinica } from './paginas/InicioClinica';
 import { PaginaAcceso } from './paginas/PaginaAcceso';
+import { PaginaRegistro } from './paginas/PaginaRegistro';
 import { PaginaCaja } from './paginas/PaginaCaja';
 import { PaginaAdministradores } from './paginas/PaginaAdministradores';
 import { PaginaEquipo } from './paginas/PaginaEquipo';
@@ -48,6 +49,12 @@ export function App() {
           element={sesion
             ? <Navigate to="/" replace />
             : <PaginaAcceso />}
+        />
+        <Route
+          path="/registro"
+          element={sesion
+            ? <Navigate to="/" replace />
+            : <PaginaRegistro />}
         />
         <Route
           element={<RutaAutenticada sesion={sesion} />}

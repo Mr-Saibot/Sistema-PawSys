@@ -22,6 +22,10 @@ export class IngresosService {
   async create(dto: CreateIngresoDto, usuarioId: number) {
     const administrador = await this.prisma.administrador.findUnique({ where: { usuarioId } });
     if (!administrador) throw new NotFoundException('No existe un perfil de administrador para este usuario');
+    if (dto.clienteId) {
+      const cliente = await this.prisma.cliente.findUnique({ where: { id: dto.clienteId } });
+      if (!cliente) throw new NotFoundException('El dueño seleccionado no existe');
+    }
     return this.prisma.$transaction(async (transaction) => {
       const cajaAbierta = await transaction.caja.updateMany({
         where: { id: dto.cajaId, estado: 'ABIERTA' },
@@ -80,6 +84,9 @@ export class IngresosService {
             origen: 'CONSULTA',
             cajaId: dto.cajaId,
             consultaId,
+            ...(consulta.historial.mascota.clienteId
+              ? { clienteId: consulta.historial.mascota.clienteId }
+              : {}),
             responsable,
             descripcion: `Cobro confirmado para la consulta de ${consulta.historial.mascota.nombre}`,
           },
@@ -136,6 +143,9 @@ export class IngresosService {
             origen: 'VACUNACION',
             cajaId: dto.cajaId,
             vacunacionId,
+            ...(vacunacion.historial.mascota.clienteId
+              ? { clienteId: vacunacion.historial.mascota.clienteId }
+              : {}),
             responsable,
             descripcion: `Cobro confirmado para la vacunación de ${vacunacion.historial.mascota.nombre}`,
           },
@@ -147,7 +157,26 @@ export class IngresosService {
   }
 
   async findAll() {
-    return this.prisma.ingreso.findMany({ include: { caja: true } });
+    return this.prisma.ingreso.findMany({
+      include: {
+        caja: true,
+        cliente: true,
+        consulta: true,
+        vacunacion: true,
+      },
+      orderBy: { fecha: 'desc' },
+    });
+  }
+
+  async findAllForClient(usuarioId: number) {
+    return this.prisma.ingreso.findMany({
+      where: { cliente: { usuarioId } },
+      include: {
+        consulta: true,
+        vacunacion: true,
+      },
+      orderBy: { fecha: 'desc' },
+    });
   }
 
   private async obtenerAdministrador(usuarioId: number) {

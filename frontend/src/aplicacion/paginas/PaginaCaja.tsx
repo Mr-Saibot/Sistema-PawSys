@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowDownLeft, ArrowUpRight, LockKeyhole, Wallet } from 'lucide-react';
 import { enviarApi } from '../../servicios/api.js';
-import type { ReporteCaja } from '../../tipos';
+import type { Caja, Egreso, Ingreso, ReporteCaja } from '../../tipos';
 import { Boton } from '../componentes/Boton';
 import { EncabezadoModulo } from '../componentes/EncabezadoModulo';
 import { EstadoVacio } from '../componentes/EstadoVacio';
@@ -22,6 +22,8 @@ export function PaginaCaja() {
   const [reporte, establecerReporte] = useState<ReporteCaja | null>(null);
   const [fecha, establecerFecha] = useState(fechaActual());
   const [error, establecerError] = useState('');
+  const [resumenCierre, establecerResumenCierre] =
+    useState<ResumenCierre | null>(null);
   const caja = datos.cajas.find((item) => item.estado === 'ABIERTA');
   const esAdministrador = sesion.usuario.rol === 'ADMINISTRADOR';
   const pendientes = obtenerAtencionesPendientes(datos.consultas, datos.vacunaciones);
@@ -29,11 +31,20 @@ export function PaginaCaja() {
   const totalEgresos = sumarMontos(datos.egresos.map((item) => item.monto));
 
   async function cerrarCaja() {
-    if (!caja || !window.confirm('¿Cerrar la caja actual?')) {
+    if (!caja) {
+      return;
+    }
+    const resumen = crearResumenCierre(
+      caja,
+      datos.ingresos,
+      datos.egresos,
+    );
+    if (!window.confirm(crearMensajeCierre(resumen))) {
       return;
     }
     try {
       await modificar(`/caja/${caja.id}/cerrar`, 'POST');
+      establecerResumenCierre(resumen);
     } catch (causa) {
       establecerError(mensajeError(causa));
     }
@@ -90,6 +101,8 @@ export function PaginaCaja() {
           alCargarReporte={() => void cargarReporte()}
           reporte={reporte}
         />}
+      {resumenCierre && <TarjetaResumenCierre resumen={resumenCierre} />}
+      {esAdministrador && <HistorialCajas cajas={datos.cajas} />}
     </div>
   );
 }
@@ -143,6 +156,7 @@ function ContenidoCaja({
             <FormularioMovimientoCaja
               tipo="ingreso"
               cajaId={cajaId}
+              clientes={datos.clientes}
               alGuardar={() => undefined}
             />
           </Tarjeta>
@@ -373,6 +387,115 @@ function fechaActual(): string {
   const mes = String(ahora.getMonth() + 1).padStart(2, '0');
   const dia = String(ahora.getDate()).padStart(2, '0');
   return `${ahora.getFullYear()}-${mes}-${dia}`;
+}
+
+interface ResumenCierre {
+  saldoInicial: number;
+  ingresos: number;
+  egresos: number;
+  saldoFinal: number;
+  efectivo: number;
+  transferencia: number;
+}
+
+function crearResumenCierre(
+  caja: Caja,
+  ingresos: Ingreso[],
+  egresos: Egreso[],
+): ResumenCierre {
+  const ingresosCaja = ingresos.filter((ingreso) => ingreso.cajaId === caja.id);
+  const egresosCaja = egresos.filter((egreso) => egreso.cajaId === caja.id);
+  const totalIngresos = sumarMontos(ingresosCaja.map((ingreso) => ingreso.monto));
+  const totalEgresos = sumarMontos(egresosCaja.map((egreso) => egreso.monto));
+
+  return {
+    saldoInicial: Number(caja.saldoInicial),
+    ingresos: totalIngresos,
+    egresos: totalEgresos,
+    saldoFinal: Number(caja.saldoInicial) + totalIngresos - totalEgresos,
+    efectivo: sumarMontos(
+      ingresosCaja
+        .filter((ingreso) => ingreso.formaPago === 'EFECTIVO')
+        .map((ingreso) => ingreso.monto),
+    ),
+    transferencia: sumarMontos(
+      ingresosCaja
+        .filter((ingreso) => ingreso.formaPago === 'TRANSFERENCIA_QR')
+        .map((ingreso) => ingreso.monto),
+    ),
+  };
+}
+
+function crearMensajeCierre(resumen: ResumenCierre): string {
+  return [
+    '¿Cerrar la caja actual?',
+    `Saldo inicial: ${formatearGuaranies(resumen.saldoInicial)}`,
+    `Ingresos: ${formatearGuaranies(resumen.ingresos)}`,
+    `Efectivo: ${formatearGuaranies(resumen.efectivo)}`,
+    `Transferencia / QR: ${formatearGuaranies(resumen.transferencia)}`,
+    `Egresos: ${formatearGuaranies(resumen.egresos)}`,
+    `Monto esperado en caja: ${formatearGuaranies(resumen.saldoFinal)}`,
+  ].join('\n');
+}
+
+function TarjetaResumenCierre({ resumen }: { resumen: ResumenCierre }) {
+  return (
+    <Tarjeta className="mt-5 grid gap-2 border-2 border-exito/20 p-5">
+      <h2 className="font-semibold">Resumen de la caja cerrada</h2>
+      <p className="text-sm text-texto-suave">
+        Saldo inicial: {formatearGuaranies(resumen.saldoInicial)} · Ingresos:{' '}
+        {formatearGuaranies(resumen.ingresos)} · Egresos:{' '}
+        {formatearGuaranies(resumen.egresos)}
+      </p>
+      <p className="text-sm text-texto-suave">
+        Efectivo: {formatearGuaranies(resumen.efectivo)} · Transferencias:{' '}
+        {formatearGuaranies(resumen.transferencia)}
+      </p>
+      <strong>Monto esperado en caja: {formatearGuaranies(resumen.saldoFinal)}</strong>
+    </Tarjeta>
+  );
+}
+
+function HistorialCajas({ cajas }: { cajas: Caja[] }) {
+  return (
+    <Tarjeta className="mt-5 p-5">
+      <h2 className="font-semibold">Historial de cajas</h2>
+      <div className="mt-4 grid gap-3">
+        {cajas.map((caja) => {
+          const ingresos = caja.ingresos || [];
+          const egresos = caja.egresos || [];
+          const totalIngresos = sumarMontos(ingresos.map((item) => item.monto));
+          const totalEgresos = sumarMontos(egresos.map((item) => item.monto));
+
+          return (
+            <details className="rounded-control border border-borde p-3" key={caja.id}>
+              <summary className="cursor-pointer font-medium">
+                Caja #{caja.id} · {caja.estado} · Ingresos:{' '}
+                {formatearGuaranies(totalIngresos)}
+              </summary>
+              <p className="mt-2 text-sm text-texto-suave">
+                Apertura: {new Date(caja.fechaApertura).toLocaleString('es-PY')}
+                {' · '}Egresos: {formatearGuaranies(totalEgresos)}
+                {' · '}Saldo: {formatearGuaranies(caja.saldoActual)}
+              </p>
+              <ul className="mt-3 grid gap-1 text-sm">
+                {ingresos.map((ingreso) => (
+                  <li key={`ingreso-${ingreso.id}`}>
+                    Ingreso · {ingreso.concepto} · {formatearGuaranies(ingreso.monto)}
+                  </li>
+                ))}
+                {egresos.map((egreso) => (
+                  <li key={`egreso-${egreso.id}`}>
+                    Egreso · {egreso.concepto} · {formatearGuaranies(egreso.monto)}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          );
+        })}
+      </div>
+    </Tarjeta>
+  );
 }
 
 function mensajeError(causa: unknown): string {

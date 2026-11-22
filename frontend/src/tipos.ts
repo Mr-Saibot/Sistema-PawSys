@@ -25,6 +25,7 @@ export interface Mascota {
   nombre: string;
   especie: string;
   raza?: string | null;
+  sexo?: string | null;
   peso?: number | null;
   estado?: boolean;
   foto?: string;
@@ -74,6 +75,9 @@ export interface Caja {
   saldoActual: number | string;
   estado: string;
   fechaApertura: string;
+  fechaCierre?: string | null;
+  ingresos?: Ingreso[];
+  egresos?: Egreso[];
 }
 
 export interface ReporteCaja {
@@ -88,11 +92,16 @@ export interface ReporteCaja {
 
 export interface Ingreso {
   id: number;
+  cajaId?: number;
   monto: number | string;
   concepto: string;
   responsable: string;
   formaPago: string;
   fecha: string;
+  clienteId?: number | null;
+  cliente?: Persona | null;
+  consulta?: Consulta | null;
+  vacunacion?: Vacunacion | null;
 }
 
 export interface Egreso {
@@ -102,6 +111,7 @@ export interface Egreso {
   responsable: string;
   categoria: string;
   fecha: string;
+  cajaId?: number;
 }
 
 export interface ConfiguracionPagos {

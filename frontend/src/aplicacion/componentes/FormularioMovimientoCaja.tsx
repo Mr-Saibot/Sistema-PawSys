@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { usePanelClinica } from '../contextos/ContextoPanelClinica';
 import { Boton } from './Boton';
 import { EntradaTexto } from './EntradaTexto';
+import type { Persona } from '../../tipos';
 
 type TipoMovimiento = 'ingreso' | 'egreso';
 
@@ -9,12 +10,14 @@ interface PropiedadesFormularioMovimiento {
   tipo: TipoMovimiento;
   cajaId: number;
   alGuardar: () => void;
+  clientes?: Persona[];
 }
 
 export function FormularioMovimientoCaja({
   tipo,
   cajaId,
   alGuardar,
+  clientes,
 }: PropiedadesFormularioMovimiento) {
   const { modificar } = usePanelClinica();
   const [error, establecerError] = useState('');
@@ -47,7 +50,9 @@ export function FormularioMovimientoCaja({
         Monto (Gs.)
         <EntradaTexto name="monto" type="number" min="1" step="1" required />
       </label>
-      {tipo === 'ingreso' ? <CampoFormaPago /> : <CamposEgreso />}
+      {tipo === 'ingreso'
+        ? <CamposIngreso clientes={clientes || []} />
+        : <CamposEgreso />}
       <label className="grid gap-1 text-sm font-medium">
         Descripción
         <EntradaTexto name="descripcion" maxLength={250} />
@@ -60,15 +65,28 @@ export function FormularioMovimientoCaja({
   );
 }
 
-function CampoFormaPago() {
+function CamposIngreso({ clientes }: { clientes: Persona[] }) {
   return (
-    <label className="grid gap-1 text-sm font-medium">
-      Forma de pago
-      <select className={claseCampo} name="formaPago" required>
-        <option value="EFECTIVO">Efectivo</option>
-        <option value="TRANSFERENCIA_QR">Transferencia / QR verificada</option>
-      </select>
-    </label>
+    <>
+      <label className="grid gap-1 text-sm font-medium">
+        Dueño que realiza el pago
+        <select className={claseCampo} name="clienteId">
+          <option value="">No asociar a un dueño</option>
+          {clientes.map((cliente) => (
+            <option key={cliente.id} value={cliente.id}>
+              {cliente.nombre} {cliente.apellido}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-1 text-sm font-medium">
+        Forma de pago
+        <select className={claseCampo} name="formaPago" required>
+          <option value="EFECTIVO">Efectivo</option>
+          <option value="TRANSFERENCIA_QR">Transferencia / QR verificada</option>
+        </select>
+      </label>
+    </>
   );
 }
 
@@ -108,6 +126,10 @@ function crearDatosMovimiento(
   }
   if (tipo === 'ingreso') {
     datos.formaPago = texto(valores, 'formaPago');
+    const clienteId = texto(valores, 'clienteId');
+    if (clienteId) {
+      datos.clienteId = Number(clienteId);
+    }
   } else {
     datos.categoria = texto(valores, 'categoria');
     const proveedor = texto(valores, 'proveedor');

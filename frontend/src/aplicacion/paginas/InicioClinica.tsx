@@ -15,7 +15,7 @@ import {
 
 export function InicioClinica() {
   const { datos, sesion } = usePanelClinica();
-  const nombre = sesion.usuario.correo.split('@')[0];
+  const nombre = obtenerNombreUsuario(sesion);
   const citasHoy = obtenerCitasHoy(datos.turnos);
 
   return (
@@ -30,6 +30,18 @@ export function InicioClinica() {
         : <InicioClinicaEquipo citasHoy={citasHoy} />}
     </div>
   );
+}
+
+function obtenerNombreUsuario(sesion: ReturnType<typeof usePanelClinica>['sesion']): string {
+  const perfil = sesion.usuario.cliente
+    || sesion.usuario.veterinario
+    || sesion.usuario.administrador;
+
+  if (perfil) {
+    return `${perfil.nombre} ${perfil.apellido}`;
+  }
+
+  return 'Usuario';
 }
 
 interface PropiedadesInicioEquipo {

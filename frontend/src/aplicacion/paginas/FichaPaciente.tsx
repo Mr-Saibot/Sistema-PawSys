@@ -32,6 +32,7 @@ export function FichaPaciente({ sesion }: PropiedadesFichaPaciente) {
     <ContenidoFichaPaciente
       paciente={estado.paciente}
       sesion={sesion}
+      alRecargar={estado.recargar}
     />
   );
 }

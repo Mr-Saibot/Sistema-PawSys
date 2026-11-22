@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,12 +12,16 @@ import { RegisterDto, LoginDto } from './dto/auth.dto';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { ConfigurarPinDto } from './dto/configurar-pin.dto';
 import * as bcrypt from 'bcrypt';
+import { CorreoNotificacionesService } from '../notificaciones/correo-notificaciones.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly correo: CorreoNotificacionesService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -74,6 +79,10 @@ export class AuthService {
     });
 
     const { passwordHash: _passwordHash, ...usuarioSeguro } = registro.usuario;
+    await this.enviarSinBloquear(
+      this.correo.enviarBienvenida(correo, `${nombre} ${apellido}`),
+      `No se pudo enviar el correo de bienvenida a ${correo}.`,
+    );
     return { user: usuarioSeguro, cliente: registro.cliente };
   }
 
@@ -109,10 +118,53 @@ export class AuthService {
 
     const { passwordHash: _passwordHash, ...userWithoutPassword } = usuario;
 
+    const nombreUsuario = this.obtenerNombreUsuario(usuario);
+    await this.enviarSinBloquear(
+      this.correo.enviarAvisoInicioSesion(
+        usuario.correo,
+        nombreUsuario,
+        new Date().toLocaleString('es-PY'),
+      ),
+      `No se pudo enviar el aviso de inicio de sesión a ${usuario.correo}.`,
+    );
+
     return {
       user: userWithoutPassword,
       access_token: token,
     };
+  }
+
+  private obtenerNombreUsuario(usuario: {
+    cliente: { nombre: string; apellido: string } | null;
+    veterinario: { nombre: string; apellido: string } | null;
+    administrador: { nombre: string; apellido: string } | null;
+  }): string {
+    const perfil = usuario.cliente || usuario.veterinario || usuario.administrador;
+
+    if (!perfil) {
+      return 'Usuario';
+    }
+
+    return `${perfil.nombre} ${perfil.apellido}`;
+  }
+
+  private async enviarSinBloquear(
+    envio: Promise<void>,
+    mensajeError: string,
+  ): Promise<void> {
+    try {
+      await envio;
+    } catch (causa: unknown) {
+      this.logger.warn(`${mensajeError} ${this.obtenerDetalleError(causa)}`);
+    }
+  }
+
+  private obtenerDetalleError(causa: unknown): string {
+    if (causa instanceof Error) {
+      return causa.message;
+    }
+
+    return 'Error desconocido.';
   }
 
   async createStaff(dto: CreateStaffDto) {

@@ -12,7 +12,7 @@ export function EstadoFichaError({
 }: PropiedadesEstadoFichaError) {
   const descripcion = identificadorValido
     ? error || 'Revisá el enlace o pedí acceso al equipo de la clínica.'
-    : 'El identificador del paciente no es válido.';
+    : 'El identificador de la mascota no es válido.';
 
   return (
     <EstadoVacio

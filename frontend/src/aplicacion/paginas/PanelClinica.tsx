@@ -17,7 +17,7 @@ export function PanelClinica({
 }: PropiedadesPanelClinica) {
   const estado = useDatosClinica(sesion);
   const cerrarSesion = useCerrarSesion();
-  const nombreUsuario = sesion.usuario.correo.split('@')[0];
+  const nombreUsuario = obtenerNombreUsuario(sesion);
 
   if (estado.cargando) {
     return <PantallaCarga />;
@@ -41,6 +41,18 @@ export function PanelClinica({
       </MarcoAplicacion>
     </ProveedorPanelClinica>
   );
+}
+
+function obtenerNombreUsuario(sesion: SesionUsuario): string {
+  const perfil = sesion.usuario.cliente
+    || sesion.usuario.veterinario
+    || sesion.usuario.administrador;
+
+  if (perfil) {
+    return `${perfil.nombre} ${perfil.apellido}`;
+  }
+
+  return 'Usuario';
 }
 
 interface PropiedadesAvisoError {

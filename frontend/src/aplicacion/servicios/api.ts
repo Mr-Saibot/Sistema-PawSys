@@ -5,6 +5,7 @@ import type {
   RolUsuario,
   SesionUsuario,
 } from '../tipos/paciente';
+import type { DatosRegistroCliente } from '../tipos/acceso';
 
 const CLAVE_SESION = 'pawsys-session';
 const CLAVE_API = 'pawsys-api-url';
@@ -121,6 +122,26 @@ export async function iniciarSesion(
   };
   guardarSesion(sesion);
   return sesion;
+}
+
+export async function registrarCliente(
+  datos: DatosRegistroCliente,
+): Promise<void> {
+  const respuesta = await fetch(crearUrl('/auth/register'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nombre: datos.nombre,
+      apellido: datos.apellido,
+      cedulaIdentidad: datos.cedulaIdentidad,
+      correo: datos.correo,
+      password: datos.clave,
+      telefono: datos.telefono || undefined,
+      direccion: datos.direccion || undefined,
+    }),
+  });
+
+  await leerRespuesta<unknown>(respuesta);
 }
 
 export async function obtenerMascotas(

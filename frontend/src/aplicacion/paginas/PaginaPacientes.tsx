@@ -27,14 +27,14 @@ export function PaginaPacientes() {
   return (
     <div>
       <EncabezadoModulo
-        titulo={esCliente ? 'Mis mascotas' : 'Pacientes'}
-        descripcion="Cada paciente tiene su propia ficha clínica y seguimiento."
+        titulo={esCliente ? 'Mis mascotas' : 'Mascotas'}
+        descripcion="Cada mascota tiene su propia ficha clínica y seguimiento."
         accion={
           <Boton
             icono={<Plus size={17} />}
             onClick={() => establecerFormularioAbierto(true)}
           >
-            Nuevo paciente
+            Nueva mascota
           </Boton>
         }
       />
@@ -95,19 +95,19 @@ export function PaginaPacientes() {
           )
           : <ListaPacientes pacientes={pacientes} />
         : <EstadoVacio
-          titulo={busqueda ? 'No encontramos pacientes' : 'Todavía no hay pacientes'}
+          titulo={busqueda ? 'No encontramos mascotas' : 'Todavía no hay mascotas'}
           descripcion={busqueda
             ? 'Probá con otro nombre, especie o responsable.'
             : 'Agregá una mascota para comenzar a organizar sus cuidados.'}
           accion={!busqueda && (
             <Boton onClick={() => establecerFormularioAbierto(true)}>
-              Agregar paciente
+              Agregar mascota
             </Boton>
           )}
         />}
       {formularioAbierto && (
         <PanelLateralFormulario
-          titulo="Nuevo paciente"
+          titulo="Nueva mascota"
           descripcion="La ficha clínica se crea automáticamente con la mascota."
           alCerrar={() => establecerFormularioAbierto(false)}
         >
@@ -157,7 +157,7 @@ function ListaPacientes({ pacientes }: { pacientes: DatosPanel['mascotas'] }) {
       <table className="w-full min-w-[42rem] text-left text-sm">
         <thead className="border-b border-borde text-texto-suave">
           <tr>
-            <th className="px-4 py-3 font-medium">Paciente</th>
+            <th className="px-4 py-3 font-medium">Mascota</th>
             <th className="px-4 py-3 font-medium">Especie / raza</th>
             <th className="px-4 py-3 font-medium">Responsable</th>
             <th className="px-4 py-3 font-medium">Peso</th>

@@ -119,6 +119,11 @@ también hay que repetirlo para confirmarlo. Luego se solicita para cada
 modificación administrativa. Después de 5 intentos incorrectos, el acceso se
 bloquea durante 15 minutos.
 
+El mismo servicio SMTP también envía un correo de bienvenida al crear una
+cuenta y un aviso informativo cada vez que se inicia sesión. Estos avisos no
+bloquean el registro ni el acceso si el servidor SMTP está caído o todavía no
+fue configurado; el backend registra el motivo en sus logs.
+
 ## Límites funcionales actuales
 
 - Ingresos y egresos se pueden registrar y consultar; no hay rutas de edición o eliminación para esos movimientos. Las atenciones cobradas conservan su importe y no se pueden eliminar.

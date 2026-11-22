@@ -98,6 +98,7 @@ Las rutas para perfiles (`POST /clientes`, `/veterinarios` y `/administradores`)
 - `GET /veterinarios/disponibles` devuelve datos mínimos para elegir un profesional. `GET /configuracion/pagos` devuelve instrucciones públicas, nunca secretos.
 - Los clientes reservan horarios publicados por el equipo veterinario y pueden cancelar una reserva; el horario queda disponible nuevamente.
 - La confirmación de asistencia se realiza con un enlace firmado enviado 24 horas antes. El correo necesita SMTP; sin esa configuración, no se envían recordatorios.
+- El servicio SMTP también envía un correo de bienvenida al registrar una cuenta y un aviso en cada inicio de sesión. Si un aviso falla, la operación principal no se rechaza y el backend registra el error.
 - `POST /mascotas/:id/foto` permite que un cliente actualice la foto de una mascota propia. Se aceptan JPG, PNG y WebP hasta 3 MB.
 - Al crear una mascota se crea también su historia clínica en la misma operación.
 - `GET /mascotas/:id` valida la propiedad del cliente y devuelve la historia

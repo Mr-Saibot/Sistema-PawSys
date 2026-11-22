@@ -6,6 +6,7 @@ interface EstadoFichaPaciente {
   paciente: MascotaPaciente | null;
   cargando: boolean;
   error: string;
+  recargar: () => void;
 }
 
 export function useFichaPaciente(
@@ -16,13 +17,18 @@ export function useFichaPaciente(
     paciente: null,
     cargando: true,
     error: '',
+    recargar: () => undefined,
   });
+  const [numeroRecarga, establecerNumeroRecarga] = useState(0);
 
   useEffect(() => {
     return cargarFicha(identificador, token, establecerEstado);
-  }, [identificador, token]);
+  }, [identificador, token, numeroRecarga]);
 
-  return estado;
+  return {
+    ...estado,
+    recargar: () => establecerNumeroRecarga((numero) => numero + 1),
+  };
 }
 
 function cargarFicha(
@@ -51,7 +57,12 @@ function establecerPaciente(
   paciente: MascotaPaciente,
   establecerEstado: Dispatch<SetStateAction<EstadoFichaPaciente>>,
 ): void {
-  establecerEstado({ paciente, cargando: false, error: '' });
+  establecerEstado({
+    paciente,
+    cargando: false,
+    error: '',
+    recargar: () => undefined,
+  });
 }
 
 function establecerError(
@@ -64,6 +75,7 @@ function establecerError(
       paciente: null,
       cargando: false,
       error: obtenerMensajeError(causa),
+      recargar: () => undefined,
     });
   }
 }

@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CorreoTurnosService } from './correo-turnos.service';
+import { CorreoNotificacionesService } from '../notificaciones/correo-notificaciones.service';
 
 const INTERVALO_RECORDATORIOS_MS = 5 * 60 * 1000;
 const HORAS_ANTES_DEL_TURNO = 24;
@@ -22,7 +22,7 @@ implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
-    private readonly correo: CorreoTurnosService,
+    private readonly correo: CorreoNotificacionesService,
   ) {}
 
   onModuleInit(): void {

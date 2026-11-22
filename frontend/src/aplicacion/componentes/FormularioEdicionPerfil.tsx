@@ -32,7 +32,7 @@ const camposPorTipo: Record<TipoPerfil, CampoPerfil[]> = {
     { nombre: 'nombre', etiqueta: 'Nombre', requerido: true },
     { nombre: 'apellido', etiqueta: 'Apellido', requerido: true },
     { nombre: 'especialidad', etiqueta: 'Especialidad', requerido: true },
-    { nombre: 'nroMatricula', etiqueta: 'Matrícula', requerido: true },
+    { nombre: 'nroMatricula', etiqueta: 'Nro. de matrícula', requerido: true },
     { nombre: 'telefono', etiqueta: 'Teléfono', requerido: false },
     { nombre: 'direccion', etiqueta: 'Dirección', requerido: false },
   ],

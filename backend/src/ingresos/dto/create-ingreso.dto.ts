@@ -21,4 +21,9 @@ export class CreateIngresoDto {
   @IsOptional()
   @IsString()
   descripcion?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  clienteId?: number;
 }

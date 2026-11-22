@@ -57,7 +57,7 @@ export function FormularioEquipo({
       {rol === 'VETERINARIO' && (
         <>
           <CampoEquipo nombre="especialidad" etiqueta="Especialidad" />
-          <CampoEquipo nombre="nroMatricula" etiqueta="Matrícula" />
+          <CampoEquipo nombre="nroMatricula" etiqueta="Nro. de matrícula" />
         </>
       )}
       <CampoEquipo nombre="telefono" etiqueta="Teléfono" requerido={false} />

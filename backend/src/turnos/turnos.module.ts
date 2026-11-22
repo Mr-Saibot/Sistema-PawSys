@@ -3,15 +3,14 @@ import { AuthModule } from '../auth/auth.module';
 import { TurnosService } from './turnos.service';
 import { TurnosController } from './turnos.controller';
 import { ConfirmacionTurnoController } from './confirmacion-turno.controller';
-import { CorreoTurnosService } from './correo-turnos.service';
+import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 import { TurnosRecordatorioService } from './turnos-recordatorio.service';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, NotificacionesModule],
   controllers: [TurnosController, ConfirmacionTurnoController],
   providers: [
     TurnosService,
-    CorreoTurnosService,
     TurnosRecordatorioService,
   ],
   exports: [TurnosService],

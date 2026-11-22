@@ -20,20 +20,35 @@ export function DatosBasicosPaciente({
       <DatoPaciente icono={<Weight size={16} />}>
         {peso}
       </DatoPaciente>
+      <DatoPaciente>
+        Sexo: {textoSexo(paciente.sexo)}
+      </DatoPaciente>
     </div>
   );
+}
+
+function textoSexo(sexo: string | null): string {
+  if (sexo === 'MACHO') {
+    return 'Macho';
+  }
+  if (sexo === 'HEMBRA') {
+    return 'Hembra';
+  }
+  return 'No indicado';
 }
 
 function DatoPaciente({
   icono,
   children,
 }: {
-  icono: React.ReactNode;
-  children: string;
+  icono?: React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <span className="inline-flex items-center gap-2 text-sm text-texto">
-      <span className="text-verde-profundo" aria-hidden="true">{icono}</span>
+      {icono && (
+        <span className="text-verde-profundo" aria-hidden="true">{icono}</span>
+      )}
       {children}
     </span>
   );

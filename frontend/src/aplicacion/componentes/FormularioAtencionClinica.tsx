@@ -54,7 +54,7 @@ export function FormularioAtencionClinica({
   return (
     <form className="grid gap-5" onSubmit={guardar}>
       <label className="grid gap-1 text-sm font-medium">
-        Ficha del paciente
+        Ficha de la mascota
         <select
           className={claseCampo}
           name="historialId"

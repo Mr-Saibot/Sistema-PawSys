@@ -172,6 +172,9 @@ export async function cargarDatosPanel(sesion: Sesion): Promise<DatosPanel> {
       { clave: 'vacunaciones', ruta: '/vacunaciones' },
     );
   }
+  if (sesion.usuario.rol === 'CLIENTE') {
+    recursos.push({ clave: 'ingresos', ruta: '/ingresos/mis-pagos' });
+  }
   if (sesion.usuario.rol === 'ADMINISTRADOR') {
     recursos.push(
       { clave: 'cajas', ruta: '/caja' },

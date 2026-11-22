@@ -34,7 +34,7 @@ export function TarjetaMascota({
   }
 
   return (
-    <article className="overflow-hidden rounded-tarjeta border border-borde
+    <article className="overflow-hidden rounded-tarjeta border-2 border-borde
       bg-superficie shadow-sutil">
       <Link to={`/pacientes/${mascota.id}`} className="block">
         <div className="relative flex h-48 items-center justify-center
@@ -61,6 +61,7 @@ export function TarjetaMascota({
             <CalendarDays size={14} />
             {calcularEdad(mascota.fechaNacimiento)}
           </span>
+          <span>{textoSexo(mascota.sexo)}</span>
         </div>
         <p className="text-sm text-texto-suave">
           Responsable: {nombreResponsable(mascota)}
@@ -123,6 +124,16 @@ function calcularEdad(fechaNacimiento?: string | null): string {
   const anios = new Date().getFullYear()
     - new Date(fechaNacimiento).getFullYear();
   return anios === 1 ? '1 año' : `${anios} años`;
+}
+
+function textoSexo(sexo?: string | null): string {
+  if (sexo === 'MACHO') {
+    return 'Macho';
+  }
+  if (sexo === 'HEMBRA') {
+    return 'Hembra';
+  }
+  return 'Sexo no indicado';
 }
 
 function mensajeError(causa: unknown): string {

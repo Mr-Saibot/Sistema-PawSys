@@ -38,6 +38,7 @@ model Cliente {
   usuarioId       Int       @unique
   usuario         Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   mascotas        Mascota[]
+  ingresos        Ingreso[]
   createdAt       DateTime  @default(now())
 }
 
@@ -78,6 +79,7 @@ model Mascota {
   nombre          String
   especie         String
   raza            String?
+  sexo            String?
   peso            Float?
   fotoUrl         String?
   fechaNacimiento DateTime?
@@ -195,8 +197,11 @@ model Ingreso {
   consulta     Consulta?   @relation(fields: [consultaId], references: [id])
   vacunacionId Int?        @unique
   vacunacion   Vacunacion? @relation(fields: [vacunacionId], references: [id])
+  clienteId    Int?
+  cliente      Cliente?    @relation(fields: [clienteId], references: [id], onDelete: SetNull)
 
   @@index([cajaId], map: "Ingreso_cajaId_fkey")
+  @@index([clienteId], map: "Ingreso_clienteId_fkey")
 }
 
 model Egreso {

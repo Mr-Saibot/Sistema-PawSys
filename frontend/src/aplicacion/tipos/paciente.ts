@@ -4,6 +4,14 @@ export interface UsuarioSesion {
   id: number;
   correo: string;
   rol: RolUsuario;
+  cliente?: PerfilSesion;
+  veterinario?: PerfilSesion;
+  administrador?: PerfilSesion;
+}
+
+interface PerfilSesion {
+  nombre: string;
+  apellido: string;
 }
 
 export interface SesionUsuario {
@@ -55,6 +63,7 @@ export interface MascotaPaciente {
   nombre: string;
   especie: string;
   raza: string | null;
+  sexo: string | null;
   peso: number | null;
   fotoUrl: string | null;
   fechaNacimiento: string | null;
@@ -68,6 +77,7 @@ export interface MascotaResumen {
   id: number;
   nombre: string;
   clienteId?: number;
+  sexo?: string | null;
 }
 
 export interface RespuestaAcceso {

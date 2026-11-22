@@ -34,7 +34,7 @@ const enlacesPorRol: Record<RolUsuario, EnlaceNavegacion[]> = {
   VETERINARIO: [
     { titulo: 'Inicio', ruta: '/', icono: ChartNoAxesCombined },
     { titulo: 'Agenda', ruta: '/agenda', icono: CalendarDays },
-    { titulo: 'Pacientes', ruta: '/pacientes', icono: PawPrint },
+    { titulo: 'Mascotas', ruta: '/pacientes', icono: PawPrint },
     {
       titulo: 'Historias clínicas',
       ruta: '/historias',
@@ -45,7 +45,7 @@ const enlacesPorRol: Record<RolUsuario, EnlaceNavegacion[]> = {
   ADMINISTRADOR: [
     { titulo: 'Inicio', ruta: '/', icono: ChartNoAxesCombined },
     { titulo: 'Agenda', ruta: '/agenda', icono: CalendarDays },
-    { titulo: 'Pacientes', ruta: '/pacientes', icono: PawPrint },
+    { titulo: 'Mascotas', ruta: '/pacientes', icono: PawPrint },
     { titulo: 'Propietarios', ruta: '/propietarios', icono: UsersRound },
     {
       titulo: 'Historias clínicas',

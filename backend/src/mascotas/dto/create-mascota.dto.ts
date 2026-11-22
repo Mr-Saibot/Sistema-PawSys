@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsNumber, IsDateString, IsInt, IsBoolean } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString, IsNumber, IsDateString, IsInt, IsBoolean } from 'class-validator';
 
 export class CreateMascotaDto {
   @IsNotEmpty({ message: 'El nombre de la mascota es obligatorio' })
@@ -12,6 +12,10 @@ export class CreateMascotaDto {
   @IsOptional()
   @IsString()
   raza?: string;
+
+  @IsOptional()
+  @IsIn(['MACHO', 'HEMBRA', 'NO_ESPECIFICADO'])
+  sexo?: string;
 
   @IsOptional()
   @IsNumber({}, { message: 'El peso debe ser un valor numérico' })

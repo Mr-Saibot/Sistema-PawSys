@@ -47,4 +47,10 @@ export class IngresosController {
   findAll() {
     return this.ingresosService.findAll();
   }
+
+  @Get('mis-pagos')
+  @Roles(Rol.CLIENTE)
+  findAllForClient(@Req() req: AuthenticatedRequest) {
+    return this.ingresosService.findAllForClient(req.user.id);
+  }
 }
