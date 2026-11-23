@@ -3,10 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build:legacy": "tsc -p tsconfig.legacy.json",
     "build": "node scripts/compilar.mjs",
-    "watch": "tsc -w -p tsconfig.legacy.json",
-    "prestart": "npm run build:legacy",
     "start": "vite --host 0.0.0.0 --port 5500"
   },
   "devDependencies": {

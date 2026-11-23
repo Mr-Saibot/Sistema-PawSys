@@ -5,13 +5,6 @@ const tareas = [
     argumentos: [
       'node_modules/typescript/bin/tsc',
       '-p',
-      'tsconfig.legacy.json',
-    ],
-  },
-  {
-    argumentos: [
-      'node_modules/typescript/bin/tsc',
-      '-p',
       'tsconfig.app.json',
       '--noEmit',
     ],
