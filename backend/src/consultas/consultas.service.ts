@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Rol } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
@@ -70,7 +75,7 @@ export class ConsultasService {
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, usuario: UsuarioClinico) {
     const consulta = await this.prisma.consulta.findUnique({
       where: { id },
       include: {
@@ -86,11 +91,17 @@ export class ConsultasService {
       throw new NotFoundException(`Consulta médica con ID ${id} no encontrada`);
     }
 
+    this.validarAccesoVeterinario(consulta.veterinario.usuarioId, usuario);
+
     return consulta;
   }
 
-  async update(id: number, updateConsultaDto: UpdateConsultaDto) {
-    const consulta = await this.findOne(id);
+  async update(
+    id: number,
+    updateConsultaDto: UpdateConsultaDto,
+    usuario: UsuarioClinico,
+  ) {
+    const consulta = await this.findOne(id, usuario);
     if (consulta.ingreso && updateConsultaDto.costo !== undefined
       && Number(updateConsultaDto.costo) !== Number(consulta.costo)) {
       throw new BadRequestException('No se puede cambiar el costo de una consulta ya cobrada');
@@ -107,8 +118,8 @@ export class ConsultasService {
     });
   }
 
-  async remove(id: number) {
-    const consulta = await this.findOne(id);
+  async remove(id: number, usuario: UsuarioClinico) {
+    const consulta = await this.findOne(id, usuario);
     if (consulta.ingreso) {
       throw new BadRequestException('No se puede eliminar una consulta con un cobro registrado');
     }
@@ -117,4 +128,20 @@ export class ConsultasService {
       where: { id },
     });
   }
+
+  private validarAccesoVeterinario(
+    propietarioId: number,
+    usuario: UsuarioClinico,
+  ): void {
+    if (usuario.rol === Rol.VETERINARIO && propietarioId !== usuario.id) {
+      throw new ForbiddenException(
+        'No puedes acceder a una consulta de otro veterinario',
+      );
+    }
+  }
+}
+
+interface UsuarioClinico {
+  id: number;
+  rol: Rol;
 }

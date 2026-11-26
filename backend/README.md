@@ -66,7 +66,7 @@ No se configura un prefijo global `/api`. Las rutas privadas requieren `Authoriz
 
 | Recurso | Rutas |
 |---|---|
-| Salud | `GET /` |
+| Salud | `GET /`, `GET /health` |
 | Autenticación | `POST /auth/register`, `POST /auth/login` |
 | Cuentas de personal | `POST /auth/usuarios` |
 | Clientes | `GET/POST /clientes`, `GET/PATCH/DELETE /clientes/:id`, `GET /clientes/me/mascotas` |

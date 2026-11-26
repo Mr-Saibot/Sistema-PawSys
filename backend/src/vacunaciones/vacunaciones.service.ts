@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Rol } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVacunacionDto } from './dto/create-vacunacione.dto';
@@ -69,7 +74,7 @@ export class VacunacionesService {
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, usuario: UsuarioClinico) {
     const vacunacion = await this.prisma.vacunacion.findUnique({
       where: { id },
       include: {
@@ -85,11 +90,17 @@ export class VacunacionesService {
       throw new NotFoundException(`Vacunación con ID ${id} no encontrada`);
     }
 
+    this.validarAccesoVeterinario(vacunacion.veterinario.usuarioId, usuario);
+
     return vacunacion;
   }
 
-  async update(id: number, updateVacunacionDto: UpdateVacunacionDto) {
-    const vacunacion = await this.findOne(id);
+  async update(
+    id: number,
+    updateVacunacionDto: UpdateVacunacionDto,
+    usuario: UsuarioClinico,
+  ) {
+    const vacunacion = await this.findOne(id, usuario);
     if (vacunacion.ingreso && updateVacunacionDto.costo !== undefined
       && Number(updateVacunacionDto.costo) !== Number(vacunacion.costo)) {
       throw new BadRequestException('No se puede cambiar el costo de una vacunación ya cobrada');
@@ -105,8 +116,8 @@ export class VacunacionesService {
     });
   }
 
-  async remove(id: number) {
-    const vacunacion = await this.findOne(id);
+  async remove(id: number, usuario: UsuarioClinico) {
+    const vacunacion = await this.findOne(id, usuario);
     if (vacunacion.ingreso) {
       throw new BadRequestException('No se puede eliminar una vacunación con un cobro registrado');
     }
@@ -115,4 +126,20 @@ export class VacunacionesService {
       where: { id },
     });
   }
+
+  private validarAccesoVeterinario(
+    propietarioId: number,
+    usuario: UsuarioClinico,
+  ): void {
+    if (usuario.rol === Rol.VETERINARIO && propietarioId !== usuario.id) {
+      throw new ForbiddenException(
+        'No puedes acceder a una vacunación de otro veterinario',
+      );
+    }
+  }
+}
+
+interface UsuarioClinico {
+  id: number;
+  rol: Rol;
 }

@@ -29,21 +29,22 @@ export class VacunacionesController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.vacunacionesService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
+    return this.vacunacionesService.findOne(id, req.user);
   }
 
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateVacunacionDto: UpdateVacunacionDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.vacunacionesService.update(id, updateVacunacionDto);
+    return this.vacunacionesService.update(id, updateVacunacionDto, req.user);
   }
 
   @Delete(':id')
   @Roles(Rol.ADMINISTRADOR)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.vacunacionesService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
+    return this.vacunacionesService.remove(id, req.user);
   }
 }

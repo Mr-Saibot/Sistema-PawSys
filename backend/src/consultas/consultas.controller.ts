@@ -29,21 +29,22 @@ export class ConsultasController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.consultasService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
+    return this.consultasService.findOne(id, req.user);
   }
 
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateConsultaDto: UpdateConsultaDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.consultasService.update(id, updateConsultaDto);
+    return this.consultasService.update(id, updateConsultaDto, req.user);
   }
 
   @Delete(':id')
   @Roles(Rol.ADMINISTRADOR)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.consultasService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
+    return this.consultasService.remove(id, req.user);
   }
 }

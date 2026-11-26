@@ -76,6 +76,9 @@ $env:NODE_OPTIONS='--experimental-vm-modules'
 npm --prefix backend test -- --runInBand
 ```
 
+La API también expone `GET http://localhost:3000/health` para comprobar
+rápidamente que el servicio está disponible.
+
 El último comando configura la ejecución de Jest en el entorno ESM usado por las pruebas actuales.
 
 ## Uso y roles
